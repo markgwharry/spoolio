@@ -116,6 +116,13 @@ def test_device_registration_wifi_rotation_and_deletion_are_owner_scoped(
     )
     assert heartbeat.status_code == 200
     assert heartbeat.get_json()["device"]["connection_state"] == "online"
+    assert heartbeat.get_json()["protocol"] == {
+        "name": "spoolio-hardware",
+        "version": "1",
+        "weight_unit": "g",
+        "weight_type": "gross",
+        "max_gross_weight": 10000.0,
+    }
 
     rotated = client.post(
         f"/api/hardware/devices/{device_id}/regenerate-key",
@@ -442,7 +449,7 @@ def test_remaining_hardware_and_admin_json_routes_reject_bad_bodies(
         is_admin=True,
     )
     device = hardware_device_factory(user_id=admin.id, hardware_type="scale")
-    spool = spool_factory(user_id=admin.id)
+    spool = spool_factory(user_id=admin.id, nfc_tag_id="finite-tag")
     headers = auth_headers_factory(admin.id)
 
     from extensions import db
@@ -521,6 +528,17 @@ def test_remaining_hardware_and_admin_json_routes_reject_bad_bodies(
         headers=_device_headers(device.api_key),
         json={"nfc_tag_id": ["bad"], "weight": 100},
     ).status_code == 400
+    for non_finite in (float("nan"), float("inf"), float("-inf")):
+        assert client.post(
+            "/api/hardware/weight-update",
+            headers=_device_headers(device.api_key),
+            json={"nfc_tag_id": "finite-tag", "weight": non_finite},
+        ).status_code == 400
+        assert client.post(
+            "/api/hardware/event",
+            headers=_device_headers(device.api_key),
+            json={"event_type": "stable_weight", "weight": non_finite},
+        ).status_code == 400
     assert client.post(
         "/api/hardware/orphans/link",
         headers=headers,

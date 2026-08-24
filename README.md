@@ -160,7 +160,9 @@ serial console; the reference ESP32-CYD display uses placeholder values that
 must be replaced locally before compiling. See [`hardware/README.md`](hardware/README.md).
 
 Generate a device API key by registering a device from the Hardware page in the
-app; never commit real credentials back into the repository.
+app; never commit real credentials back into the repository. Community devices
+can implement the board-neutral [Hardware Protocol v1](docs/HARDWARE_PROTOCOL.md)
+and use the included Python simulator before any physical scale is connected.
 
 ---
 

@@ -2,6 +2,11 @@
 
 This directory has two maintained reference Arduino sketches.
 
+The server contract is independent of these boards. Start with
+[`docs/HARDWARE_PROTOCOL.md`](../docs/HARDWARE_PROTOCOL.md) when building a new
+scale or integration; `generic_client.py` is a dependency-free Python
+simulator for heartbeat, identifier lookup, events, and weight updates.
+
 | Target | Maintained sketch | Role |
 | --- | --- | --- |
 | WeMos D1 Mini / ESP8266 | `SpoolioESP8266/SpoolioESP8266.ino` | NFC and HX711 scale client, with optional OLED and LEDs |

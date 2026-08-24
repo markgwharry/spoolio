@@ -28,6 +28,11 @@ from time_utils import utc_now_naive
 jwt = JWTManager()
 
 
+def validation_error_response():
+    """Return a stable response for a rejected numeric, date, or identifier value."""
+    return jsonify({'msg': 'Invalid input'}), 400
+
+
 def get_client_address():
     """Trust nginx X-Real-IP only when the immediate peer is local."""
     peer = get_remote_address()

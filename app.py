@@ -1,9 +1,10 @@
 import os
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
 from flask import Flask, send_from_directory, request
 from flask_cors import CORS
 from werkzeug.exceptions import NotFound, RequestEntityTooLarge
+from werkzeug.utils import safe_join, secure_filename
 
 from blueprints import register_blueprints
 from commands import register_cli
@@ -41,21 +42,48 @@ def _load_env_files():
 
 _load_env_files()
 
+
+def _normalize_database_uri(app, db_uri):
+    """Resolve the final configured database URI before SQLAlchemy sees it."""
+    if not db_uri:
+        instance_folder = Path(app.instance_path)
+        current_default = instance_folder / 'filament.db'
+        legacy_default = instance_folder / 'instance' / 'filament.db'
+        db_path = (
+            legacy_default
+            if legacy_default.is_file() and not current_default.exists()
+            else current_default
+        )
+        db_path.parent.mkdir(parents=True, exist_ok=True)
+        return f"sqlite:///{db_path}"
+
+    if not isinstance(db_uri, str):
+        raise ValueError('SQLALCHEMY_DATABASE_URI must be a string')
+    if db_uri == 'sqlite:///:memory:':
+        return db_uri
+    if db_uri.startswith('sqlite:///') and not db_uri.startswith('sqlite:////'):
+        relative_path = db_uri.replace('sqlite:///', '', 1)
+        if PureWindowsPath(relative_path).is_absolute():
+            return db_uri
+        safe_db_name = secure_filename(relative_path)
+        if not safe_db_name or safe_db_name != relative_path:
+            raise ValueError(
+                'Relative SQLite database paths must be a filename inside the '
+                'instance folder'
+            )
+        Path(app.instance_path).mkdir(parents=True, exist_ok=True)
+        return f"sqlite:///{Path(app.instance_path) / safe_db_name}"
+    return db_uri
+
+
 def create_app(config=None):
     app = Flask(__name__, static_folder='static')
 
     # Production configuration
-    db_uri = (
+    app.config['SQLALCHEMY_DATABASE_URI'] = (
         os.environ.get('SQLALCHEMY_DATABASE_URI')
         or os.environ.get('DATABASE_URL')
-        or 'sqlite:///instance/filament.db'
     )
-    if db_uri.startswith('sqlite:///') and not db_uri.startswith('sqlite:////'):
-        relative_path = db_uri.replace('sqlite:///', '', 1)
-        db_path = os.path.join(app.instance_path, relative_path)
-        os.makedirs(os.path.dirname(db_path), exist_ok=True)
-        db_uri = f"sqlite:///{db_path}"
-    app.config['SQLALCHEMY_DATABASE_URI'] = db_uri
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', '')
     app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', '')
@@ -98,6 +126,11 @@ def create_app(config=None):
     # initialized. Tests rely on this to suppress mail and disable rate limits.
     if config:
         app.config.update(config)
+
+    app.config['SQLALCHEMY_DATABASE_URI'] = _normalize_database_uri(
+        app,
+        app.config.get('SQLALCHEMY_DATABASE_URI'),
+    )
 
     registration_mode = app.config.get('REGISTRATION_MODE')
     if not isinstance(registration_mode, str):
@@ -169,7 +202,11 @@ def create_app(config=None):
             'continue using SECRET_KEY for backward compatibility'
         )
 
+    # These directories are trusted operator configuration, not request data. They
+    # intentionally support absolute mounted-volume paths outside the checkout.
+    # codeql[py/path-injection]
     os.makedirs(app.config['PROFILE_IMAGE_FOLDER'], exist_ok=True)
+    # codeql[py/path-injection]
     os.makedirs(app.config['FIRMWARE_UPLOAD_FOLDER'], exist_ok=True)
 
     db.init_app(app)
@@ -240,8 +277,8 @@ def create_app(config=None):
     def static_proxy(path):
         static_folder = app.static_folder or 'static'
         # Try to serve the file from static folder
-        file_path = os.path.join(static_folder, path)
-        if os.path.exists(file_path):
+        file_path = safe_join(static_folder, path)
+        if file_path and os.path.isfile(file_path):
             return send_from_directory(static_folder, path)
         # If file doesn't exist, serve index.html (for React Router)
         return send_from_directory(static_folder, 'index.html')

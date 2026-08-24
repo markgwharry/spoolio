@@ -16,6 +16,7 @@ from blueprints._helpers import (
     serialize_group,
     _ensure_group,
     _maybe_create_empty_from_spool,
+    validation_error_response,
 )
 
 spools_bp = Blueprint('spools', __name__)
@@ -120,8 +121,8 @@ def create_spool():
         low_stock_threshold = _nonnegative_number(data, 'low_stock_threshold')
         price = _nonnegative_number(data, 'price')
         purchase_date = _purchase_date(data.get('purchase_date'))
-    except ValueError as exc:
-        return jsonify({'msg': str(exc)}), 400
+    except ValueError:
+        return validation_error_response()
     if weight_remaining > weight_start:
         return jsonify({'msg': 'weight_remaining cannot exceed weight_start'}), 400
 
@@ -193,8 +194,8 @@ def update_spool(spool_id):
             if 'purchase_date' in data
             else spool.purchase_date
         )
-    except ValueError as exc:
-        return jsonify({'msg': str(exc)}), 400
+    except ValueError:
+        return validation_error_response()
 
     final_weight_start = numeric_updates.get('weight_start', spool.weight_start)
     final_weight_remaining = numeric_updates.get(
@@ -217,8 +218,8 @@ def update_spool(spool_id):
             continue
         try:
             reference_id = _reference_id(data.get(field), field)
-        except ValueError as exc:
-            return jsonify({'msg': str(exc)}), 400
+        except ValueError:
+            return validation_error_response()
         if db.session.get(model, reference_id) is None:
             return jsonify({'msg': f'Invalid {field}'}), 400
         reference_updates[field] = reference_id
@@ -290,8 +291,8 @@ def use_spool(spool_id):
         return jsonify({'msg': 'JSON object required'}), 400
     try:
         requested_weight = _nonnegative_number(data, 'weight_used', required=True)
-    except ValueError as exc:
-        return jsonify({'msg': str(exc)}), 400
+    except ValueError:
+        return validation_error_response()
     if requested_weight <= 0:
         return jsonify({'msg': 'weight_used must be greater than zero'}), 400
     notes = data.get('notes', '')
@@ -436,8 +437,8 @@ def create_refill():
         )
         price = _nonnegative_number(data, 'price')
         purchase_date = _purchase_date(data.get('purchase_date'))
-    except ValueError as exc:
-        return jsonify({'msg': str(exc)}), 400
+    except ValueError:
+        return validation_error_response()
     if weight_total <= 0:
         return jsonify({'msg': 'weight_total must be greater than zero'}), 400
     if weight_remaining > weight_total:
@@ -476,24 +477,24 @@ def update_refill(refill_id):
     if 'weight_remaining' in data:
         try:
             weight_remaining = _nonnegative_number(data, 'weight_remaining', required=True)
-        except ValueError as exc:
-            return jsonify({'msg': str(exc)}), 400
+        except ValueError:
+            return validation_error_response()
         if weight_remaining > refill.weight_total:
             return jsonify({'msg': 'weight_remaining cannot exceed weight_total'}), 400
         refill.weight_remaining = weight_remaining
     if 'price' in data:
         try:
             refill.price = _nonnegative_number(data, 'price')
-        except ValueError as exc:
-            return jsonify({'msg': str(exc)}), 400
+        except ValueError:
+            return validation_error_response()
     for field in ['notes', 'subtype', 'barcode', 'serial_number']:
         if field in data:
             setattr(refill, field, data[field])
     if 'purchase_date' in data:
         try:
             refill.purchase_date = _purchase_date(data.get('purchase_date'))
-        except ValueError as exc:
-            return jsonify({'msg': str(exc)}), 400
+        except ValueError:
+            return validation_error_response()
     db.session.commit()
     return jsonify({'refill': serialize_refill(refill)})
 

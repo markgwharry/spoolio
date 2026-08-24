@@ -4,7 +4,7 @@ from pathlib import Path
 from flask import Flask, send_from_directory, request
 from flask_cors import CORS
 from werkzeug.exceptions import NotFound, RequestEntityTooLarge
-from werkzeug.utils import safe_join
+from werkzeug.utils import safe_join, secure_filename
 
 from blueprints import register_blueprints
 from commands import register_cli
@@ -49,20 +49,28 @@ def create_app(config=None):
     db_uri = (
         os.environ.get('SQLALCHEMY_DATABASE_URI')
         or os.environ.get('DATABASE_URL')
-        or 'sqlite:///instance/filament.db'
     )
-    if db_uri.startswith('sqlite:///') and not db_uri.startswith('sqlite:////'):
-        relative_path = db_uri.replace('sqlite:///', '', 1)
-        relative_db_path = Path(relative_path)
-        if relative_db_path.is_absolute() or '..' in relative_db_path.parts:
-            raise ValueError(
-                'Relative SQLite database paths must stay inside the instance folder'
-            )
-        db_path = Path(app.instance_path) / relative_db_path
-        # The relative value is operator configuration and has been confined to the
-        # Flask instance directory above.
-        # codeql[py/path-injection]
+    if not db_uri:
+        instance_folder = Path(app.instance_path)
+        current_default = instance_folder / 'filament.db'
+        legacy_default = instance_folder / 'instance' / 'filament.db'
+        db_path = (
+            legacy_default
+            if legacy_default.is_file() and not current_default.exists()
+            else current_default
+        )
         db_path.parent.mkdir(parents=True, exist_ok=True)
+        db_uri = f"sqlite:///{db_path}"
+    elif db_uri.startswith('sqlite:///') and not db_uri.startswith('sqlite:////'):
+        relative_path = db_uri.replace('sqlite:///', '', 1)
+        safe_db_name = secure_filename(relative_path)
+        if not safe_db_name or safe_db_name != relative_path:
+            raise ValueError(
+                'Relative SQLite database paths must be a filename inside the '
+                'instance folder'
+            )
+        Path(app.instance_path).mkdir(parents=True, exist_ok=True)
+        db_path = Path(app.instance_path) / safe_db_name
         db_uri = f"sqlite:///{db_path}"
     app.config['SQLALCHEMY_DATABASE_URI'] = db_uri
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False

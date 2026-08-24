@@ -28,16 +28,9 @@ from time_utils import utc_now_naive
 jwt = JWTManager()
 
 
-def validation_error_response(exc):
-    """Return a controlled message from Spoolio's local input validators.
-
-    Callers must use this only for ``ValueError`` instances raised by the bounded
-    numeric, date, and identifier validators in the same blueprint. Those validators
-    construct their messages from fixed field names and never include exception
-    details, user values, file paths, or stack traces.
-    """
-    # codeql[py/stack-trace-exposure]
-    return jsonify({'msg': str(exc)}), 400
+def validation_error_response():
+    """Return a stable response for a rejected numeric, date, or identifier value."""
+    return jsonify({'msg': 'Invalid input'}), 400
 
 
 def get_client_address():

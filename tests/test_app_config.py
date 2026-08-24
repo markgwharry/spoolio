@@ -25,5 +25,5 @@ def test_relative_sqlite_path_cannot_escape_instance_folder(monkeypatch):
 
     from app import create_app
 
-    with pytest.raises(ValueError, match='must stay inside the instance folder'):
+    with pytest.raises(ValueError, match='must be a filename inside the instance'):
         create_app()

@@ -147,8 +147,8 @@ def create_bit():
         )
         price = _optional_price(data.get('price'))
         purchase_date = _purchase_date(data.get('purchase_date'))
-    except ValueError as exc:
-        return validation_error_response(exc)
+    except ValueError:
+        return validation_error_response()
 
     raw_name = data.get('name')
     name = raw_name.strip() if isinstance(raw_name, str) else ''
@@ -221,8 +221,8 @@ def update_bit(bit_id):
             _purchase_date(data.get('purchase_date'))
             if 'purchase_date' in data else bit.purchase_date
         )
-    except ValueError as exc:
-        return validation_error_response(exc)
+    except ValueError:
+        return validation_error_response()
     if quantity_total <= 0:
         return jsonify({'msg': 'quantity_total must be positive'}), 400
     if quantity_remaining > quantity_total:
@@ -289,8 +289,8 @@ def restock_bit(bit_id):
             _purchase_date(data.get('purchase_date'))
             if data.get('purchase_date') not in (None, '') else bit.purchase_date
         )
-    except ValueError as exc:
-        return validation_error_response(exc)
+    except ValueError:
+        return validation_error_response()
 
     if quantity_add <= 0:
         return jsonify({'msg': 'quantity must be positive'}), 400
@@ -326,8 +326,8 @@ def use_bit(bit_id):
             data.get('quantity_used'),
             'quantity_used',
         )
-    except ValueError as exc:
-        return validation_error_response(exc)
+    except ValueError:
+        return validation_error_response()
 
     if requested_quantity <= 0:
         return jsonify({'msg': 'quantity_used must be positive'}), 400

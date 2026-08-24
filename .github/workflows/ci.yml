@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test, audit, and build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Scan Git history for secrets
+        run: >-
+          docker run --rm
+          -v "${PWD}:/repo"
+          ghcr.io/gitleaks/gitleaks:v8.30.0
+          git /repo --no-banner --redact
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install backend dependencies
+        run: pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Audit backend dependencies
+        run: python -m pip_audit -r requirements.txt
+
+      - name: Run backend tests
+        run: python -m pytest
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Audit frontend dependencies for critical advisories
+        working-directory: frontend
+        run: npm audit --omit=dev --audit-level=critical
+
+      - name: Run frontend tests
+        working-directory: frontend
+        run: npm test
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Build and smoke-test self-hosted image
+        run: |
+          docker build --tag spoolio:test .
+          docker run --detach --name spoolio-smoke --publish 8000:8000 spoolio:test
+          trap 'docker rm --force spoolio-smoke >/dev/null 2>&1 || true' EXIT
+          for attempt in {1..30}; do
+            if curl --fail --silent --show-error http://127.0.0.1:8000/api/health; then
+              curl --fail --silent --show-error http://127.0.0.1:8000/api/registration \
+                | python -c 'import json, sys; data = json.load(sys.stdin); assert data["action"] == "create-owner"'
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs spoolio-smoke
+          exit 1

@@ -1,0 +1,60 @@
+# Spoolio — one-command self-host.
+#
+#   1. cp .env.example .env   # then edit if you want email/custom domains
+#   2. docker compose up -d
+#   3. open http://localhost:8000
+#
+# Secrets (SECRET_KEY / JWT_SECRET_KEY / WIFI_CREDENTIAL_KEY and the first-owner
+# setup code) are auto-generated on first run and persisted in the `spoolio-data`
+# volume. Provide your own in .env for full control.
+
+services:
+  spoolio:
+    build: .
+    image: spoolio:latest
+    container_name: spoolio
+    restart: unless-stopped
+    ports:
+      - "${SPOOLIO_PORT:-8000}:8000"
+    environment:
+      FLASK_ENV: production
+      # Optional — auto-generated if omitted. Set to pin your own values.
+      SECRET_KEY: ${SECRET_KEY:-}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-}
+      WIFI_CREDENTIAL_KEY: ${WIFI_CREDENTIAL_KEY:-}
+      # One browser-created owner, then registration closes. Change to
+      # waitlist or closed explicitly for other deployment models.
+      REGISTRATION_MODE: ${REGISTRATION_MODE:-first-user}
+      # Optional override; Docker securely generates/persists one when blank.
+      REGISTRATION_TOKEN: ${REGISTRATION_TOKEN:-}
+      # SQLite by default; point at Postgres/MySQL by setting DATABASE_URL.
+      # SQLALCHEMY_DATABASE_URI takes precedence over DATABASE_URL in app.py,
+      # so both are forwarded to keep Compose consistent with .env.example.
+      # Empty is falsy there, so leaving either blank falls through correctly.
+      DATABASE_URL: ${DATABASE_URL:-}
+      SQLALCHEMY_DATABASE_URI: ${SQLALCHEMY_DATABASE_URI:-}
+      # Comma-separated allowed origins (defaults to localhost in dev).
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8000}
+      # Maximum request-body size in bytes (defaults to 16 MiB).
+      MAX_CONTENT_LENGTH: ${MAX_CONTENT_LENGTH:-16777216}
+      # Email is optional; leave blank to disable verification emails.
+      MAIL_SERVER: ${MAIL_SERVER:-}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USE_TLS: ${MAIL_USE_TLS:-true}
+      # Implicit TLS (port 465). Mutually exclusive with MAIL_USE_TLS.
+      MAIL_USE_SSL: ${MAIL_USE_SSL:-false}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_DEFAULT_SENDER: ${MAIL_DEFAULT_SENDER:-}
+      WAITLIST_NOTIFICATION_EMAIL: ${WAITLIST_NOTIFICATION_EMAIL:-}
+      GUNICORN_WORKERS: ${GUNICORN_WORKERS:-2}
+      GUNICORN_THREADS: ${GUNICORN_THREADS:-4}
+    volumes:
+      # SQLite DB, generated secrets, and uploaded firmware.
+      - spoolio-data:/app/instance
+      # Profile images and other shared user uploads.
+      - spoolio-shared:/app/shared
+
+volumes:
+  spoolio-data:
+  spoolio-shared:

@@ -1,0 +1,189 @@
+.spool-rack {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+.spool-rack-square {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--border);
+  box-shadow: 0 2px 8px 0 #0001;
+  cursor: pointer;
+  transition: border 0.2s, box-shadow 0.2s, transform 0.18s cubic-bezier(.4, 2, .6, 1), opacity 0.18s;
+  position: relative;
+  border-radius: 0.5rem;
+  background: #fff;
+  opacity: 0;
+  transform: scale(0.8);
+  animation: rack-pop 0.22s cubic-bezier(.4, 2, .6, 1) forwards;
+}
+
+.spool-rack-square:nth-child(1) { animation-delay: 0.04s; }
+.spool-rack-square:nth-child(2) { animation-delay: 0.08s; }
+.spool-rack-square:nth-child(3) { animation-delay: 0.12s; }
+.spool-rack-square:nth-child(4) { animation-delay: 0.16s; }
+.spool-rack-square:nth-child(5) { animation-delay: 0.20s; }
+.spool-rack-square:nth-child(6) { animation-delay: 0.24s; }
+.spool-rack-square:nth-child(7) { animation-delay: 0.28s; }
+.spool-rack-square:nth-child(8) { animation-delay: 0.32s; }
+.spool-rack-square:nth-child(9) { animation-delay: 0.36s; }
+.spool-rack-square:nth-child(10) { animation-delay: 0.40s; }
+
+@keyframes rack-pop {
+  0% { opacity: 0; transform: scale(0.8); }
+  80% { opacity: 1; transform: scale(1.08); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.spool-rack-square:hover {
+  border-color: var(--primary);
+  box-shadow: 0 4px 16px 0 #00bcd44d;
+  z-index: 2;
+  transform: translateY(-4px) scale(1.04);
+}
+
+.spool-rack-fillbar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 6px;
+  border-radius: 0 0 0.5rem 0.5rem;
+  background: var(--primary);
+  transition: width 0.3s;
+}
+
+.spool-tooltip {
+  display: none;
+  position: absolute;
+  left: 50%;
+  top: -44px;
+  transform: translateX(-50%) translateY(8px);
+  background: var(--popover);
+  color: var(--popover-foreground);
+  padding: 0.5em 1em;
+  border-radius: 0.5em;
+  box-shadow: 0 2px 8px 0 #0002;
+  font-size: 0.9em;
+  white-space: nowrap;
+  z-index: 10;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s, transform 0.18s;
+}
+
+.spool-rack-square:hover .spool-tooltip,
+.spool-rack-square:focus .spool-tooltip {
+  display: block;
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+}
+
+.spool-rack-square.low {
+  border: 3px solid #ef4444 !important;
+  box-shadow: 0 0 0 2px #ef4444cc;
+  animation: rack-pop 0.22s cubic-bezier(.4, 2, .6, 1) forwards, low-pulse 1.5s infinite alternate;
+}
+
+@keyframes low-pulse {
+  0% {
+    box-shadow: 0 0 0 2px #ef4444cc;
+    transform: scale(1);
+  }
+  100% {
+    box-shadow: 0 0 0 6px #ef444466;
+    transform: scale(1.07);
+  }
+}
+
+.spool-rack-square.low::after {
+  content: '!';
+  color: #ef4444;
+  font-weight: bold;
+  font-size: 1.2em;
+  position: absolute;
+  top: 2px;
+  right: 6px;
+  background: #fff;
+  border-radius: 50%;
+  width: 1.1em;
+  height: 1.1em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 4px #0002;
+  animation: badge-pop 0.4s cubic-bezier(.4, 2, .6, 1);
+}
+
+@keyframes badge-pop {
+  0% {
+    transform: scale(0.7);
+    opacity: 0;
+  }
+  80% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.spool-card {
+  transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+  cursor: pointer;
+}
+
+.spool-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 188, 212, 0.3);
+  border-color: var(--primary);
+}
+
+.expand-panel {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.3s ease;
+}
+
+.expand-panel.open {
+  max-height: 1000px;
+  opacity: 1;
+}
+
+button {
+  transition: transform 0.1s ease, box-shadow 0.2s ease;
+}
+
+button:active {
+  transform: scale(0.97);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.fade-in {
+  animation: fade-in 200ms ease-in-out forwards;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

@@ -1,0 +1,88 @@
+/* =============================================================================
+   SPOOLIO APP STYLES
+   Design System: Industrial Precision
+   ============================================================================= */
+
+/* -----------------------------------------------------------------------------
+   CSS RESET & BASE
+   ----------------------------------------------------------------------------- */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0 !important;
+  padding: 0 !important;
+  font-family: var(--font-sans) !important;
+  font-size: var(--text-base) !important;
+  line-height: var(--leading-normal) !important;
+  /* Faint blueprint grid + warm corner glow over the base colour for a
+     workshop/maker feel. Layers are subtle enough not to affect contrast. */
+  background:
+    linear-gradient(var(--border-subtle) 1px, transparent 1px) 0 0 / 100% 30px,
+    linear-gradient(90deg, var(--border-subtle) 1px, transparent 1px) 0 0 / 30px 100%,
+    radial-gradient(1100px 540px at 88% -8%, var(--accent-subtle), transparent 60%),
+    var(--background) !important;
+  color: var(--text-primary) !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Headings use the characterful display face; body copy stays in Inter. */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display) !important;
+  letter-spacing: -0.01em;
+}
+
+/* -----------------------------------------------------------------------------
+   APP SHELL
+   ----------------------------------------------------------------------------- */
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--background);
+}
+
+.app-main {
+  flex: 1;
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 3rem;
+  animation: pageEnter 0.5s var(--ease-out) forwards;
+}
+
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Skip link for accessibility */
+.skip-link {
+  position: absolute;
+  top: -50px;
+  left: 1rem;
+  background: var(--accent);
+  color: var(--accent-foreground);
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-md);
+  z-index: 1000;
+  text-decoration: none;
+  font-weight: 600;
+  transition: top 0.2s var(--ease-out);
+}
+
+.skip-link:focus {
+  top: 1rem;
+}

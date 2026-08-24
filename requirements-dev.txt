@@ -1,0 +1,5 @@
+# Development / test dependencies (install in addition to requirements.txt)
+-r requirements.txt
+pytest>=8.0
+pytest-cov>=5.0
+pip-audit==2.10.1

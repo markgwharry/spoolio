@@ -1,0 +1,170 @@
+:root {
+  /* =====================================================================
+     "WORKSHOP" THEME — warm charcoal chrome + a single molten-amber accent.
+     Filament colours (rendered per-spool) supply the rest of the colour, so
+     the inventory itself paints the UI instead of one fixed brand hue.
+     ===================================================================== */
+
+  /* Base colors (warm charcoal, not blue-black) */
+  --background: #141210;
+  --foreground: #f4efe6;
+  --card: #1c1916;
+  --card-foreground: #f4efe6;
+  --popover: #1c1916;
+  --popover-foreground: #f4efe6;
+
+  /* Primary / Accent — molten filament amber */
+  --primary: #ff7a18;
+  --primary-foreground: #1a0f02;
+  --accent: #ff7a18;
+  --accent-foreground: #1a0f02;
+  --accent-hover: #ffb02e;
+  --accent-2: #ffb02e;
+  --accent-muted: rgba(255, 122, 24, 0.16);
+  --accent-subtle: rgba(255, 122, 24, 0.10);
+  --accent-glow: rgba(255, 122, 24, 0.32);
+
+  /* Secondary / Muted */
+  --secondary: #2c2820;
+  --secondary-foreground: #f4efe6;
+  --muted: #2c2820;
+  --muted-foreground: #8f8676;
+
+  /* Surfaces */
+  --surface-1: #1c1916;
+  --surface-2: #232019;
+  --surface-3: #2c2820;
+
+  /* Text */
+  --text-primary: #f4efe6;
+  --text-secondary: #c5bdae;
+  --text-muted: #8f8676;
+  --text-on-accent: #1a0f02;
+
+  /* Borders */
+  --border: #38322a;
+  --border-subtle: rgba(255, 255, 255, 0.07);
+  --input: #38322a;
+  --input-bg: #232019;
+  --input-border: #38322a;
+  --input-text: #f4efe6;
+
+  /* Feedback colors */
+  --destructive: #ff5d5d;
+  --destructive-foreground: #ffffff;
+  --success: #66d27e;
+  --warn: #ffcf5c;
+  --warning: var(--warn);
+  --ring: #ff7a18;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.4);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.5);
+  --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-hover: 0 8px 32px rgba(0, 0, 0, 0.4);
+
+  /* Radius */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-full: 9999px;
+
+  /* Typography — characterful mechanical display + mono "instrument" numerals */
+  --font-sans: 'Inter', 'Segoe UI', Arial, sans-serif;
+  --font-display: 'Space Grotesk', 'Inter', 'Segoe UI', Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-xl: 1.25rem;
+  --leading-normal: 1.5;
+
+  /* Animations / Easing */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Scrollbar */
+  --scrollbar-track: #1c1916;
+  --scrollbar-thumb: #38322a;
+  --scrollbar-thumb-hover: #4a4338;
+
+  /* Spool specific */
+  --spool-color: #ff7a18;
+  --spool-accent: #ffb02e;
+
+  /* Sidebar */
+  --sidebar: #1a1714;
+  --sidebar-foreground: #f4efe6;
+  --sidebar-primary: #ff7a18;
+  --sidebar-primary-foreground: #1a0f02;
+  --sidebar-accent: #ffb02e;
+  --sidebar-accent-foreground: #1a1714;
+  --sidebar-border: #38322a;
+  --sidebar-ring: #ff7a18;
+}
+
+/* Light mode overrides — warm "paper" variant of the Workshop theme */
+:root.light,
+body.light {
+  --background: #f5f1ea;
+  --foreground: #211c16;
+  --card: #fffdf9;
+  --card-foreground: #211c16;
+  --popover: #fffdf9;
+  --popover-foreground: #211c16;
+
+  /* Deepen the amber so it passes WCAG AA (>=4.5:1) as text on light paper.
+     #b54d08 = 5.13:1 on #fffdf9; white-on-#b54d08 = 5.21:1 for buttons. */
+  --primary: #b54d08;
+  --accent: #b54d08;
+  --accent-foreground: #ffffff;
+  --accent-hover: #d2620a;
+  --accent-2: #c25408;
+  --accent-muted: rgba(181, 77, 8, 0.14);
+  --accent-subtle: rgba(181, 77, 8, 0.08);
+  --accent-glow: rgba(181, 77, 8, 0.26);
+  --text-on-accent: #ffffff;
+  --ring: #b54d08;
+  /* Status colours deepened for AA contrast on light surfaces */
+  --success: #1f8a4c;
+  --warn: #8a5a00;
+
+  --secondary: #efe9df;
+  --secondary-foreground: #211c16;
+  --muted: #efe9df;
+  --muted-foreground: #8a8170;
+
+  --surface-1: #fffdf9;
+  --surface-2: #efe9df;
+  --surface-3: #e4ddd0;
+
+  --text-primary: #211c16;
+  --text-secondary: #4f4639;
+  --text-muted: #8a8170;
+
+  --border: #e0d8ca;
+  --border-subtle: rgba(0, 0, 0, 0.06);
+  --input-bg: #fffdf9;
+  --input-border: #e0d8ca;
+  --input-text: #211c16;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.15);
+  --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-hover: 0 8px 32px rgba(0, 0, 0, 0.12);
+
+  --scrollbar-track: #f1f5f9;
+  --scrollbar-thumb: #cbd5e1;
+  --scrollbar-thumb-hover: #94a3b8;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}

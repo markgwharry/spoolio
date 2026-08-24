@@ -1,0 +1,24 @@
+{
+  "short_name": "Spoolio",
+  "name": "Spoolio – Filament Inventory",
+  "description": "Track filament spools, supplies, projects, and connected scales.",
+  "icons": [
+    {
+      "src": "logo192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "logo512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any"
+    }
+  ],
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "theme_color": "#141210",
+  "background_color": "#141210"
+}

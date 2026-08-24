@@ -4,6 +4,7 @@ from pathlib import Path
 from flask import Flask, send_from_directory, request
 from flask_cors import CORS
 from werkzeug.exceptions import NotFound, RequestEntityTooLarge
+from werkzeug.utils import safe_join
 
 from blueprints import register_blueprints
 from commands import register_cli
@@ -52,8 +53,16 @@ def create_app(config=None):
     )
     if db_uri.startswith('sqlite:///') and not db_uri.startswith('sqlite:////'):
         relative_path = db_uri.replace('sqlite:///', '', 1)
-        db_path = os.path.join(app.instance_path, relative_path)
-        os.makedirs(os.path.dirname(db_path), exist_ok=True)
+        relative_db_path = Path(relative_path)
+        if relative_db_path.is_absolute() or '..' in relative_db_path.parts:
+            raise ValueError(
+                'Relative SQLite database paths must stay inside the instance folder'
+            )
+        db_path = Path(app.instance_path) / relative_db_path
+        # The relative value is operator configuration and has been confined to the
+        # Flask instance directory above.
+        # codeql[py/path-injection]
+        db_path.parent.mkdir(parents=True, exist_ok=True)
         db_uri = f"sqlite:///{db_path}"
     app.config['SQLALCHEMY_DATABASE_URI'] = db_uri
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -169,7 +178,11 @@ def create_app(config=None):
             'continue using SECRET_KEY for backward compatibility'
         )
 
+    # These directories are trusted operator configuration, not request data. They
+    # intentionally support absolute mounted-volume paths outside the checkout.
+    # codeql[py/path-injection]
     os.makedirs(app.config['PROFILE_IMAGE_FOLDER'], exist_ok=True)
+    # codeql[py/path-injection]
     os.makedirs(app.config['FIRMWARE_UPLOAD_FOLDER'], exist_ok=True)
 
     db.init_app(app)
@@ -240,8 +253,8 @@ def create_app(config=None):
     def static_proxy(path):
         static_folder = app.static_folder or 'static'
         # Try to serve the file from static folder
-        file_path = os.path.join(static_folder, path)
-        if os.path.exists(file_path):
+        file_path = safe_join(static_folder, path)
+        if file_path and os.path.isfile(file_path):
             return send_from_directory(static_folder, path)
         # If file doesn't exist, serve index.html (for React Router)
         return send_from_directory(static_folder, 'index.html')

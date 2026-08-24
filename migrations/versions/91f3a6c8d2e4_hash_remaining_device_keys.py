@@ -24,6 +24,10 @@ DIGEST_PREFIX = 'sha256$'
 def _api_key_digest(value):
     if value is None or value.startswith(DIGEST_PREFIX):
         return value
+    # Device keys are random 256-bit tokens. This migration creates the same
+    # indexable lookup digest as HardwareDevice.hash_api_key; it is not hashing a
+    # human-chosen password.
+    # codeql[py/weak-sensitive-data-hashing]
     digest = hashlib.sha256(value.encode('utf-8')).hexdigest()
     return f'{DIGEST_PREFIX}{digest}'
 

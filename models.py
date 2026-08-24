@@ -288,7 +288,13 @@ class HardwareDevice(db.Model):
 
     @staticmethod
     def hash_api_key(api_key):
-        """Return the stable digest used for API-key lookup and persistence."""
+        """Return the stable digest used for API-key lookup and persistence.
+
+        Device keys are uniformly random 256-bit bearer tokens, not human-chosen
+        passwords. SHA-256 is used as a one-way, indexable lookup identifier; a slow
+        password KDF is neither necessary nor suitable for equality lookup here.
+        """
+        # codeql[py/weak-sensitive-data-hashing]
         digest = hashlib.sha256(api_key.encode('utf-8')).hexdigest()
         return f'{HardwareDevice.API_KEY_DIGEST_PREFIX}{digest}'
 

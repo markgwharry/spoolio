@@ -45,6 +45,19 @@ def test_dedicated_wifi_key_reads_legacy_ciphertext_during_migration(app):
         assert decrypt_wifi_secret(dedicated_ciphertext) == "new-password"
 
 
+def test_spa_fallback_does_not_probe_files_outside_static_folder(app, tmp_path):
+    static_folder = tmp_path / 'static'
+    static_folder.mkdir()
+    (static_folder / 'index.html').write_text('safe-spa-shell')
+    (tmp_path / 'operator-only.txt').write_text('must-not-be-served')
+    app.static_folder = str(static_folder)
+
+    response = app.test_client().get('/..%2Foperator-only.txt')
+
+    assert response.status_code == 200
+    assert response.get_data(as_text=True) == 'safe-spa-shell'
+
+
 def _production_config(tmp_path):
     return {
         "SECRET_KEY": "factory-session-secret-with-more-than-32-chars",

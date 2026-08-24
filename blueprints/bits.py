@@ -13,6 +13,7 @@ from blueprints._helpers import (
     serialize_bit,
     serialize_bit_category,
     serialize_bit_usage,
+    validation_error_response,
 )
 
 bits_bp = Blueprint('bits', __name__)
@@ -147,7 +148,7 @@ def create_bit():
         price = _optional_price(data.get('price'))
         purchase_date = _purchase_date(data.get('purchase_date'))
     except ValueError as exc:
-        return jsonify({'msg': str(exc)}), 400
+        return validation_error_response(exc)
 
     raw_name = data.get('name')
     name = raw_name.strip() if isinstance(raw_name, str) else ''
@@ -221,7 +222,7 @@ def update_bit(bit_id):
             if 'purchase_date' in data else bit.purchase_date
         )
     except ValueError as exc:
-        return jsonify({'msg': str(exc)}), 400
+        return validation_error_response(exc)
     if quantity_total <= 0:
         return jsonify({'msg': 'quantity_total must be positive'}), 400
     if quantity_remaining > quantity_total:
@@ -289,7 +290,7 @@ def restock_bit(bit_id):
             if data.get('purchase_date') not in (None, '') else bit.purchase_date
         )
     except ValueError as exc:
-        return jsonify({'msg': str(exc)}), 400
+        return validation_error_response(exc)
 
     if quantity_add <= 0:
         return jsonify({'msg': 'quantity must be positive'}), 400
@@ -326,7 +327,7 @@ def use_bit(bit_id):
             'quantity_used',
         )
     except ValueError as exc:
-        return jsonify({'msg': str(exc)}), 400
+        return validation_error_response(exc)
 
     if requested_quantity <= 0:
         return jsonify({'msg': 'quantity_used must be positive'}), 400

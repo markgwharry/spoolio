@@ -1,5 +1,5 @@
 import os
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
 from flask import Flask, send_from_directory, request
 from flask_cors import CORS
@@ -42,14 +42,9 @@ def _load_env_files():
 
 _load_env_files()
 
-def create_app(config=None):
-    app = Flask(__name__, static_folder='static')
 
-    # Production configuration
-    db_uri = (
-        os.environ.get('SQLALCHEMY_DATABASE_URI')
-        or os.environ.get('DATABASE_URL')
-    )
+def _normalize_database_uri(app, db_uri):
+    """Resolve the final configured database URI before SQLAlchemy sees it."""
     if not db_uri:
         instance_folder = Path(app.instance_path)
         current_default = instance_folder / 'filament.db'
@@ -60,9 +55,16 @@ def create_app(config=None):
             else current_default
         )
         db_path.parent.mkdir(parents=True, exist_ok=True)
-        db_uri = f"sqlite:///{db_path}"
-    elif db_uri.startswith('sqlite:///') and not db_uri.startswith('sqlite:////'):
+        return f"sqlite:///{db_path}"
+
+    if not isinstance(db_uri, str):
+        raise ValueError('SQLALCHEMY_DATABASE_URI must be a string')
+    if db_uri == 'sqlite:///:memory:':
+        return db_uri
+    if db_uri.startswith('sqlite:///') and not db_uri.startswith('sqlite:////'):
         relative_path = db_uri.replace('sqlite:///', '', 1)
+        if PureWindowsPath(relative_path).is_absolute():
+            return db_uri
         safe_db_name = secure_filename(relative_path)
         if not safe_db_name or safe_db_name != relative_path:
             raise ValueError(
@@ -70,9 +72,18 @@ def create_app(config=None):
                 'instance folder'
             )
         Path(app.instance_path).mkdir(parents=True, exist_ok=True)
-        db_path = Path(app.instance_path) / safe_db_name
-        db_uri = f"sqlite:///{db_path}"
-    app.config['SQLALCHEMY_DATABASE_URI'] = db_uri
+        return f"sqlite:///{Path(app.instance_path) / safe_db_name}"
+    return db_uri
+
+
+def create_app(config=None):
+    app = Flask(__name__, static_folder='static')
+
+    # Production configuration
+    app.config['SQLALCHEMY_DATABASE_URI'] = (
+        os.environ.get('SQLALCHEMY_DATABASE_URI')
+        or os.environ.get('DATABASE_URL')
+    )
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', '')
     app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', '')
@@ -115,6 +126,11 @@ def create_app(config=None):
     # initialized. Tests rely on this to suppress mail and disable rate limits.
     if config:
         app.config.update(config)
+
+    app.config['SQLALCHEMY_DATABASE_URI'] = _normalize_database_uri(
+        app,
+        app.config.get('SQLALCHEMY_DATABASE_URI'),
+    )
 
     registration_mode = app.config.get('REGISTRATION_MODE')
     if not isinstance(registration_mode, str):

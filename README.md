@@ -21,9 +21,14 @@ Compose plugin.
 git clone https://github.com/markgwharry/spoolio.git
 cd spoolio
 cp .env.example .env        # optional — sensible defaults work out of the box
-docker compose up -d --build
+docker compose up -d
 docker compose logs spoolio          # copy the "Owner setup code"
 ```
+
+This pulls the published image for both 64-bit Intel/AMD and 64-bit Arm hosts.
+For a reproducible deployment, set `SPOOLIO_IMAGE` in `.env` to a numbered tag
+such as `ghcr.io/markgwharry/spoolio:0.1.0`. To build the checked-out source
+instead, run `docker compose up -d --build`.
 
 Then open <http://localhost:8000> and create the owner account. This one-time
 account is verified automatically and receives administrator access; browser
@@ -56,7 +61,7 @@ docker compose exec spoolio flask create-user --username alice --email alice@exa
 ```bash
 docker compose logs -f spoolio      # tail logs
 docker compose down                 # stop (data preserved in volumes)
-docker compose pull && docker compose up -d --build   # update
+docker compose pull && docker compose up -d --no-build   # update release image
 ```
 
 ---
@@ -98,6 +103,7 @@ common ones:
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
+| `SPOOLIO_IMAGE` | `ghcr.io/markgwharry/spoolio:latest` | Compose image; pin a release tag for reproducibility |
 | `FLASK_ENV` | `production` | `production` enforces strong secrets |
 | `SECRET_KEY` | _(auto in Docker)_ | Flask session/crypto key (≥32 chars in prod) |
 | `JWT_SECRET_KEY` | _(auto in Docker)_ | JWT signing key (≥32 chars in prod) |
@@ -171,8 +177,9 @@ is available at [spoolio.co.uk](https://www.spoolio.co.uk); access may be
 waitlist-controlled. Self-hosted deployments are operated and supported separately.
 
 Release tags matching `v*` publish a container to
-`ghcr.io/markgwharry/spoolio`. Source builds remain the canonical installation path
-until the first tagged release is published.
+`ghcr.io/markgwharry/spoolio` for `linux/amd64` and `linux/arm64`, with an SBOM
+and build provenance. Numbered tags are the reproducible installation path;
+`latest` follows the newest stable release.
 
 ---
 

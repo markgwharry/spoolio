@@ -2,6 +2,7 @@
 
 import os
 from pathlib import Path
+import re
 import sqlite3
 import subprocess
 import sys
@@ -37,6 +38,11 @@ def test_tagged_container_release_uses_ghcr_only():
     assert 'ghcr.io/${{ github.repository_owner }}/spoolio' in workflow
     assert 'push: true' in workflow
     assert 'workflow_dispatch:' not in workflow
+    assert re.search(r'uses: docker/[^@]+@v\d+', workflow) is None
+    assert 'docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e' in workflow
+    assert 'docker/login-action@dbcb813823bdd20940b903addbd779551569679f' in workflow
+    assert 'docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302' in workflow
+    assert 'docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a' in workflow
 
 
 def test_self_hosted_image_defaults_to_one_time_owner_registration():

@@ -1,12 +1,14 @@
 """Hardware device communication endpoints (hardware-auth, device-facing)."""
 
 import datetime
+import math
 
 from flask import Blueprint, jsonify, request, url_for, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from extensions import db
 import models
+from hardware_protocol import hardware_protocol_metadata
 from time_utils import utc_now_iso, utc_now_naive
 from blueprints._helpers import (
     hardware_auth_required,
@@ -47,6 +49,7 @@ def hardware_heartbeat():
         'server_time': utc_now_iso(),
         'connection_state': device_payload.get('connection_state'),
         'device': device_payload,
+        'protocol': hardware_protocol_metadata(),
         'wifi': wifi_meta,
         'firmware': firmware_meta,
     })
@@ -395,7 +398,9 @@ def hardware_event():
     try:
         weight = float(weight_val) if weight_val is not None else None
     except (ValueError, TypeError):
-        weight = None
+        return jsonify({'error': 'weight must be a finite number'}), 400
+    if weight is not None and not math.isfinite(weight):
+        return jsonify({'error': 'weight must be a finite number'}), 400
 
     spool = None
     if nfc_tag_id:

@@ -1,11 +1,14 @@
 """Hardware device management routes (user-facing, JWT-authenticated)."""
 
+import math
+
 from flask import Blueprint, jsonify, request, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.exc import IntegrityError
 
 from extensions import db
 import models
+from hardware_protocol import MAX_GROSS_WEIGHT_GRAMS
 from time_utils import utc_now_naive
 from blueprints._helpers import (
     limiter,
@@ -18,12 +21,6 @@ from blueprints._helpers import (
 )
 
 hardware_bp = Blueprint('hardware', __name__)
-
-# Upper bound for a single gross weight reading (grams). Covers the largest
-# consumer filament spools with generous headroom; readings above this are
-# treated as sensor errors rather than real measurements.
-MAX_GROSS_WEIGHT_GRAMS = 10000.0
-
 
 @hardware_bp.route('/hardware/register', methods=['POST'])
 @jwt_required()
@@ -354,6 +351,8 @@ def update_spool_weight():
 
     try:
         weight = float(weight)
+        if not math.isfinite(weight):
+            return jsonify({'error': 'Invalid weight value'}), 400
         if weight < 0:
             return jsonify({'error': 'Weight cannot be negative'}), 400
         # Reject physically implausible readings (largest consumer spools are ~10kg

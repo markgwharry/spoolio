@@ -39,10 +39,14 @@ def test_tagged_container_release_uses_ghcr_only():
     assert 'push: true' in workflow
     assert 'workflow_dispatch:' not in workflow
     assert re.search(r'uses: docker/[^@]+@v\d+', workflow) is None
+    assert 'docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8' in workflow
     assert 'docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e' in workflow
     assert 'docker/login-action@dbcb813823bdd20940b903addbd779551569679f' in workflow
     assert 'docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302' in workflow
     assert 'docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a' in workflow
+    assert 'platforms: linux/amd64,linux/arm64' in workflow
+    assert 'provenance: mode=max' in workflow
+    assert 'sbom: true' in workflow
 
 
 def test_self_hosted_image_defaults_to_one_time_owner_registration():
@@ -51,6 +55,7 @@ def test_self_hosted_image_defaults_to_one_time_owner_registration():
 
     assert 'REGISTRATION_MODE=first-user' in dockerfile
     assert 'REGISTRATION_MODE: ${REGISTRATION_MODE:-first-user}' in compose
+    assert 'image: ${SPOOLIO_IMAGE:-ghcr.io/markgwharry/spoolio:latest}' in compose
 
 
 def test_wal_aware_database_backup_helper_is_included():

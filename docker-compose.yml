@@ -11,7 +11,9 @@
 services:
   spoolio:
     build: .
-    image: spoolio:latest
+    # Plain `docker compose up -d` pulls the published release. Add `--build`
+    # to build this checkout instead, or set SPOOLIO_IMAGE to pin a version.
+    image: ${SPOOLIO_IMAGE:-ghcr.io/markgwharry/spoolio:latest}
     container_name: spoolio
     restart: unless-stopped
     ports:

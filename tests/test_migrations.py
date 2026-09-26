@@ -12,7 +12,7 @@ import models
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-HEAD_REVISION = '2a6f74b19c3d'
+HEAD_REVISION = 'b7e2c4d91a05'
 HOT_PATH_INDEXES = {
     'ix_filament_spool_user_id',
     'ix_spool_history_spool_id',

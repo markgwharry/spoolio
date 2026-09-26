@@ -1,0 +1,22 @@
+<!-- @dsCard group="Filament" height=270 -->
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Shelf — preview</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
+
+</head>
+<body>
+<div id="root" class="fm-stack"></div>
+<script>
+  var F = window.Filamentarium, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(
+    h('div', { style: { width: 720 } },
+      h(F.Shelf, { name: 'Shelf C', meta: 'Open shelf \u00b7 engineering \u00b7 51% RH \u00b7 4 spools', warn: true, action: h('a', { href: '#', style: { fontSize: 13, fontWeight: 500, color: 'var(--link)', textDecoration: 'none' } }, 'Browse shelf \u2192') },
+        h(F.SpoolSpine, { no: '0171', name: 'ASA Grey', material: 'ASA', hex: '#7d8084', grams: 780, width: 48, height: 152, flag: 'dry', href: '#' }),
+        h(F.SpoolSpine, { no: '0108', name: 'Charcoal CF', material: 'PLA-CF', hex: '#3a3a3a', grams: 520, width: 46, height: 148, href: '#' }),
+        h(F.SpoolSpine, { no: '0177', name: 'Wood', material: 'PLA', hex: '#8a6a45', grams: 430, width: 46, height: 150, href: '#' }),
+        h(F.SpoolSpine, { no: '0178', name: 'Silk Gold', material: 'PLA', hex: '#b8912e', grams: 890, width: 48, height: 152, href: '#' })))
+  );
+</script>
+</body>
+</html>

@@ -41,7 +41,7 @@
 }
 
 .btn-primary:hover {
-  background: #009ac2;
+  background: var(--accent-hover);
 }
 
 .btn-secondary {
@@ -69,7 +69,7 @@
 }
 
 .btn-outline:hover {
-  background: rgba(0, 180, 216, 0.1);
+  background: var(--accent-muted);
 }
 
 .btn-danger {
@@ -156,7 +156,8 @@
   color: var(--text);
 }
 
-.form-group input {
+.form-group input,
+.form-group select {
   width: 100%;
   padding: 10px;
   border: 1px solid var(--border);
@@ -167,7 +168,8 @@
   color: var(--form-foreground);
 }
 
-.form-group input:focus {
+.form-group input:focus,
+.form-group select:focus {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 2px rgba(0, 180, 216, 0.25);
@@ -436,4 +438,121 @@
 
 .connected-actions .btn {
   flex: 1 1 45%;
+}
+
+/* Task-first hardware onboarding */
+.hardware-intro {
+  max-width: 58ch;
+  margin: 0.35rem 0 0;
+  color: var(--text-secondary);
+}
+
+.hardware-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex: 0 0 auto;
+}
+
+.hardware-summary {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.devices-grid > .empty-state {
+  grid-column: 1 / -1;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--card);
+}
+
+.hardware-info {
+  overflow-x: auto;
+}
+
+@media (max-width: 700px) {
+  .hardware-manager {
+    padding: 0;
+  }
+
+  .hardware-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .hardware-header-actions,
+  .hardware-header-actions .btn {
+    width: 100%;
+  }
+
+  .hardware-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .devices-grid,
+  .connected-grid,
+  .info-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .register-form {
+    width: calc(100% - 1rem);
+    padding: 1.25rem;
+  }
+}
+
+/* Decoded vendor tag details on unlinked tags */
+.tag-summary {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.orphan-tag-id {
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  word-break: break-all;
+}
+
+.orphan-tag-cell .tag-summary {
+  display: flex;
+  margin-top: 4px;
+}
+
+.tag-format-badge {
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--muted, transparent);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.tag-color-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  display: inline-block;
+}
+
+.tag-summary-muted {
+  color: var(--muted-foreground);
+}
+
+.tag-dialog-intro {
+  margin: -8px 0 12px;
+}
+
+.tag-dialog-hint {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: var(--muted-foreground);
+}
+
+.orphan-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }

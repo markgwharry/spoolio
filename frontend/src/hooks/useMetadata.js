@@ -9,7 +9,7 @@ export const FILAMENT_METADATA = [
   'subtypes',
 ];
 export const ANALYTICS_METADATA = ['materials', 'colors'];
-export const HARDWARE_METADATA = ['materials', 'colors', 'manufacturers'];
+export const HARDWARE_METADATA = ['materials', 'colors', 'manufacturers', 'spoolTypes'];
 export const BITS_METADATA = ['bitCategories'];
 
 const definitions = {

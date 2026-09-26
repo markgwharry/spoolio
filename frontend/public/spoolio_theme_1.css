@@ -35,6 +35,14 @@
   --surface-2: #232019;
   --surface-3: #2c2820;
 
+  /* Compatibility aliases for older screens while they move to shared tokens. */
+  --color-surface: var(--surface-1);
+  --color-surface-alt: var(--surface-2);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-warning: var(--warn);
+  --color-danger: var(--destructive);
+
   /* Text */
   --text-primary: #f4efe6;
   --text-secondary: #c5bdae;

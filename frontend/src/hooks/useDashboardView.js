@@ -1,5 +1,7 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { groupSpoolsByMaterialColor } from '../utils/colorUtils';
+
+const VIEW_STORAGE_KEY = 'spoolio:dashboard-view';
 
 const initialFilters = {
   materialId: '',
@@ -10,6 +12,48 @@ const initialFilters = {
   includeRefills: true,
   sortMode: 'rainbow',
 };
+
+const readStoredView = () => {
+  try {
+    const stored = JSON.parse(localStorage.getItem(VIEW_STORAGE_KEY) || '{}');
+    return {
+      filters: { ...initialFilters, ...(stored.filters || {}) },
+      hideEmpty: Boolean(stored.hideEmpty),
+    };
+  } catch {
+    return { filters: initialFilters, hideEmpty: false };
+  }
+};
+
+export function filterInventory(spools, refills, filters) {
+  const subtypeMatches = (item) => {
+    const hasSubtype = Boolean(String(item.subtype || '').trim());
+    if (filters.subtypeMode === 'basic') return !hasSubtype;
+    if (filters.subtypeMode === 'nonbasic') return hasSubtype;
+    return true;
+  };
+  const sharedMatches = (item) => (
+    (!filters.materialId || String(item.material_id) === String(filters.materialId))
+    && (!filters.colorId || String(item.color_id) === String(filters.colorId))
+    && (!filters.manufacturerId || String(item.manufacturer_id) === String(filters.manufacturerId))
+    && subtypeMatches(item)
+  );
+
+  const visibleSpools = (Array.isArray(spools) ? spools : []).filter((spool) => (
+    sharedMatches(spool)
+    && (!filters.lowStockOnly || (
+      !spool.is_empty
+      && spool.weight_remaining <= (spool.low_stock_threshold ?? 100)
+    ))
+  ));
+  const visibleRefills = filters.includeRefills
+    ? (Array.isArray(refills) ? refills : []).filter((refill) => (
+      sharedMatches(refill) && !filters.lowStockOnly
+    ))
+    : [];
+
+  return { visibleSpools, visibleRefills };
+}
 
 export function sortGroupedSpools(grouped, sortMode) {
   const result = {};
@@ -75,39 +119,55 @@ export default function useDashboardView({
   spoolTypes,
   refills,
 }) {
-  const [filters, setFilters] = useState(initialFilters);
-  const [hideEmpty, setHideEmpty] = useState(false);
+  const [storedView] = useState(readStoredView);
+  const [filters, setFilters] = useState(storedView.filters);
+  const [hideEmpty, setHideEmpty] = useState(storedView.hideEmpty);
   const updateFilter = useCallback((name, value) => {
     setFilters((current) => ({ ...current, [name]: value }));
   }, []);
+  const resetFilters = useCallback(() => setFilters(initialFilters), []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(VIEW_STORAGE_KEY, JSON.stringify({ filters, hideEmpty }));
+    } catch {}
+  }, [filters, hideEmpty]);
+
+  const { visibleSpools, visibleRefills } = useMemo(
+    () => filterInventory(spools, refills, filters),
+    [spools, refills, filters],
+  );
 
   const groupedSpools = useMemo(() => {
     const grouped = groupSpoolsByMaterialColor(
-      spools,
+      visibleSpools,
       materials,
       colors,
       manufacturers,
       spoolTypes,
       hideEmpty,
-      refills,
+      visibleRefills,
     );
     return sortGroupedSpools(grouped, filters.sortMode);
   }, [
-    spools,
+    visibleSpools,
     materials,
     colors,
     manufacturers,
     spoolTypes,
     hideEmpty,
-    refills,
+    visibleRefills,
     filters.sortMode,
   ]);
 
   return {
     filters,
     updateFilter,
+    resetFilters,
     hideEmpty,
     setHideEmpty,
+    visibleSpools,
+    visibleRefills,
     groupedSpools,
   };
 }

@@ -4,13 +4,24 @@ import math
 
 from flask import Blueprint, jsonify, request, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 
 from extensions import db
 import models
 from hardware_protocol import MAX_GROSS_WEIGHT_GRAMS
+from hardware_tags import (
+    normalize_tag_metadata,
+    load_orphan_tag_metadata,
+    store_orphan_tag_metadata,
+    suggest_subtype,
+    tag_suggestions,
+)
 from time_utils import utc_now_naive
 from blueprints._helpers import (
+    _ensure_group,
+    _maybe_create_empty_from_spool,
+    find_owned_spool_by_tag,
     limiter,
     hardware_auth_required,
     latest_linked_spools,
@@ -21,6 +32,16 @@ from blueprints._helpers import (
 )
 
 hardware_bp = Blueprint('hardware', __name__)
+
+
+def optional_identifier(data, field):
+    """Return a stripped optional identifier, or raise ValueError if not text."""
+    value = data.get(field)
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise ValueError(f'{field} must be text')
+    return value.strip()[:100] or None
 
 @hardware_bp.route('/hardware/register', methods=['POST'])
 @jwt_required()
@@ -234,10 +255,8 @@ def regenerate_hardware_device_key(device_id):
 def get_spool_by_nfc(nfc_tag_id):
     """Get spool information by NFC tag ID."""
     current_user_id = getattr(request.hardware_device, 'user_id', None)
-    spool = models.FilamentSpool.query.filter_by(
-        nfc_tag_id=nfc_tag_id,
-        user_id=current_user_id,
-    ).first()
+    fallback_tag_id = (request.args.get('fallback') or '').strip() or None
+    spool = find_owned_spool_by_tag(current_user_id, nfc_tag_id, fallback_tag_id)
 
     if not spool:
         return jsonify({'error': 'Spool not found for NFC tag'}), 404
@@ -262,12 +281,17 @@ def update_spool_weight():
 
     if not nfc_tag_id or weight is None:
         return jsonify({'error': 'NFC tag ID and weight are required'}), 400
+    try:
+        fallback_tag_id = optional_identifier(data, 'fallback_tag_id')
+        tag_metadata = normalize_tag_metadata(data.get('tag'))
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
 
     current_user_id = getattr(request.hardware_device, 'user_id', None)
-    spool = models.FilamentSpool.query.filter_by(
-        nfc_tag_id=nfc_tag_id,
-        user_id=current_user_id,
-    ).first()
+    spool = find_owned_spool_by_tag(current_user_id, nfc_tag_id, fallback_tag_id)
+    if spool:
+        # Record events against the identifier the spool is actually linked by.
+        nfc_tag_id = spool.nfc_tag_id
     if not spool:
         orphan = models.OrphanTag.query.filter_by(
             nfc_tag_id=nfc_tag_id,
@@ -290,6 +314,7 @@ def update_spool_weight():
             orphan.hardware_device_id = request.hardware_device.id
             if current_user_id and not orphan.user_id:
                 orphan.user_id = current_user_id
+            store_orphan_tag_metadata(orphan, tag_metadata)
             orphan_recorded = True
         else:
             conflicting_orphan = models.OrphanTag.query.filter_by(
@@ -308,6 +333,7 @@ def update_spool_weight():
                     hardware_device_id=request.hardware_device.id,
                     user_id=current_user_id,
                 )
+                store_orphan_tag_metadata(orphan, tag_metadata)
                 db.session.add(orphan)
                 orphan_recorded = True
 
@@ -585,6 +611,142 @@ def link_orphan_tag():
 
     db.session.commit()
     return jsonify({'message': 'Tag linked successfully', 'spool': serialize_spool(spool)})
+
+
+def _find_or_create_named(model, name, max_length):
+    """Return the shared lookup row named ``name`` (case-insensitive), creating it."""
+    name = name.strip()[:max_length]
+    existing = model.query.filter(func.lower(model.name) == name.lower()).first()
+    if existing:
+        return existing
+    row = model(name=name)
+    db.session.add(row)
+    db.session.flush()
+    return row
+
+
+def _text_choice(data, field, default):
+    value = data.get(field, default)
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise ValueError(f'{field} must be text')
+    return value.strip() or None
+
+
+@hardware_bp.route('/hardware/orphans/create-spool', methods=['POST'])
+@jwt_required()
+def create_spool_from_orphan_tag():
+    """Create a spool from an orphan tag's decoded metadata and link the tag.
+
+    The owner supplies the spool type and may override any decoded value; the
+    rest defaults to what the device read from the tag.
+    """
+    current_user_id = get_jwt_identity()
+    data = json_object()
+    if data is None:
+        return jsonify({'error': 'JSON object required'}), 400
+    nfc_tag_value = data.get('nfc_tag_id')
+    nfc_tag_id = nfc_tag_value.strip() if isinstance(nfc_tag_value, str) else ''
+    if not nfc_tag_id:
+        return jsonify({'error': 'nfc_tag_id is required'}), 400
+
+    orphan = _claimable_orphan_tags(current_user_id).filter(
+        models.OrphanTag.nfc_tag_id == nfc_tag_id
+    ).first()
+    if not orphan:
+        return jsonify({'error': 'Orphan tag not found'}), 404
+    if models.FilamentSpool.query.filter_by(nfc_tag_id=nfc_tag_id).first():
+        return jsonify({'error': 'NFC tag already linked to another spool'}), 409
+
+    spool_type_value = data.get('spool_type_id')
+    spool_type = None
+    if isinstance(spool_type_value, int) and not isinstance(spool_type_value, bool):
+        spool_type = db.session.get(models.SpoolType, spool_type_value)
+    if not spool_type:
+        return jsonify({'error': 'A valid spool_type_id is required'}), 400
+
+    metadata = load_orphan_tag_metadata(orphan) or {}
+    suggestions = tag_suggestions(metadata)
+    try:
+        material_name = _text_choice(data, 'material', suggestions.get('material'))
+        color_name = _text_choice(data, 'color', suggestions.get('color'))
+        manufacturer_name = _text_choice(data, 'manufacturer', suggestions.get('manufacturer'))
+        subtype = _text_choice(
+            data,
+            'subtype',
+            suggest_subtype(metadata.get('material'), metadata.get('variant')),
+        )
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
+    if not material_name or not color_name or not manufacturer_name:
+        return jsonify({'error': 'material, color and manufacturer are required'}), 400
+
+    weight_start = data.get('weight_start', suggestions.get('weight_start', 1000))
+    if (
+        isinstance(weight_start, bool)
+        or not isinstance(weight_start, (int, float))
+        or not math.isfinite(weight_start)
+        or weight_start <= 0
+        or weight_start > MAX_GROSS_WEIGHT_GRAMS
+    ):
+        return jsonify({'error': 'weight_start must be a positive number of grams'}), 400
+    weight_start = float(weight_start)
+
+    try:
+        material = _find_or_create_named(models.Material, material_name, 50)
+        color = _find_or_create_named(models.Color, color_name, 50)
+        manufacturer = None
+        if metadata.get('format') == 'bambu' and 'manufacturer' not in data:
+            # Reuse whichever spelling of Bambu Lab this installation already has.
+            manufacturer = models.Manufacturer.query.filter(
+                func.lower(models.Manufacturer.name).in_(['bambu lab', 'bambu'])
+            ).first()
+        if manufacturer is None:
+            manufacturer = _find_or_create_named(models.Manufacturer, manufacturer_name, 100)
+
+        weight_remaining = weight_start
+        if orphan.last_weight is not None:
+            tare_weight = float(spool_type.tare_weight or 0)
+            weight_remaining = min(weight_start, max(0.0, float(orphan.last_weight) - tare_weight))
+
+        notes_parts = []
+        if metadata.get('format') == 'bambu':
+            ids = ' / '.join(v for v in (metadata.get('variant_id'), metadata.get('material_id')) if v)
+            notes_parts.append('Created from Bambu Lab tag' + (f' ({ids})' if ids else ''))
+        if metadata.get('color_hex'):
+            notes_parts.append(f"colour {metadata['color_hex']}")
+
+        group = _ensure_group(current_user_id, material.id, color.id)
+        spool = models.FilamentSpool(
+            material_id=material.id,
+            color_id=color.id,
+            manufacturer_id=manufacturer.id,
+            spool_type_id=spool_type.id,
+            group_id=group.id,
+            user_id=current_user_id,
+            weight_start=weight_start,
+            weight_remaining=weight_remaining,
+            is_empty=weight_remaining <= 0,
+            subtype=subtype[:100] if subtype else None,
+            notes=', '.join(notes_parts),
+            nfc_tag_id=nfc_tag_id,
+        )
+        if orphan.last_weight is not None:
+            spool.hardware_last_update = utc_now_naive()
+            if orphan.hardware_device_id:
+                orphan_device = db.session.get(models.HardwareDevice, orphan.hardware_device_id)
+                if orphan_device and str(orphan_device.user_id) == str(current_user_id):
+                    spool.hardware_device_id = orphan.hardware_device_id
+        db.session.add(spool)
+        db.session.delete(orphan)
+        db.session.commit()
+    except IntegrityError:
+        # A concurrent request created the same name or linked the same tag.
+        db.session.rollback()
+        return jsonify({'error': 'Could not create spool; the tag or a name conflicts'}), 409
+    _maybe_create_empty_from_spool(spool)
+    return jsonify({'message': 'Spool created from tag', 'spool': serialize_spool(spool)}), 201
 
 
 @hardware_bp.route('/hardware/orphans/<nfc_tag_id>', methods=['DELETE'])

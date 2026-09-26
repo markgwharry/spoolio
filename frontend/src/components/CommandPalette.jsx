@@ -22,10 +22,12 @@ export default function CommandPalette() {
     const go = (to) => () => navigate(to);
     return [
       { id: 'add-spool', label: 'Add a spool', section: 'Actions', keywords: 'new create spool filament', run: () => navigate('/dashboard#add-spool') },
+      { id: 'find-spool', label: 'Find a spool', section: 'Actions', keywords: 'search filter colour material', run: () => navigate('/dashboard#find-spool') },
+      { id: 'register-device', label: 'Register a device', section: 'Actions', keywords: 'new hardware scale nfc', run: () => navigate('/hardware#register-device') },
       { id: 'nav-dashboard', label: 'Go to Dashboard', section: 'Navigate', keywords: 'inventory spools rack home', run: go('/dashboard') },
       { id: 'nav-analytics', label: 'Go to Analytics', section: 'Navigate', keywords: 'usage projects stats charts cost', run: go('/analytics') },
       { id: 'nav-hardware', label: 'Go to Hardware', section: 'Navigate', keywords: 'devices nfc scale printer spoolman', run: go('/hardware') },
-      { id: 'nav-bits', label: 'Go to Bits', section: 'Navigate', keywords: 'parts components inventory', run: go('/bits') },
+      { id: 'nav-parts', label: 'Go to Parts', section: 'Navigate', keywords: 'bits components inventory', run: go('/parts') },
       { id: 'nav-account', label: 'Go to Account', section: 'Navigate', keywords: 'settings profile password integration spoolman', run: go('/account') },
       { id: 'theme', label: light ? 'Switch to dark mode' : 'Switch to light mode', section: 'Actions', keywords: 'theme dark light appearance', run: () => window.dispatchEvent(new Event('spoolio:toggle-theme')) },
       { id: 'logout', label: 'Log out', section: 'Actions', keywords: 'sign out exit', run: () => logout() },

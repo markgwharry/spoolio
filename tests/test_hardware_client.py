@@ -97,3 +97,37 @@ def test_generic_client_rejects_non_finite_readings(reading):
         client.update_weight("tag-1", reading)
     with pytest.raises(ValueError, match="must be finite"):
         client.event("stable_weight", weight=reading)
+
+
+def test_generic_client_sends_fallback_identifier_and_tag_metadata():
+    requests = []
+
+    def opener(request, timeout):
+        requests.append(request)
+        return FakeResponse({"status": "ok"})
+
+    client = SpoolioHardwareClient(
+        "http://localhost:8000/",
+        "device-secret",
+        opener=opener,
+    )
+    client.lookup("TRAY-UUID", fallback="5AC3F21B")
+    client.update_weight(
+        "TRAY-UUID",
+        1250,
+        fallback="5AC3F21B",
+        tag={"format": "bambu", "material": "PLA"},
+    )
+
+    lookup_request, weight_request = requests
+    assert lookup_request.full_url == (
+        "http://localhost:8000/api/hardware/spool/TRAY-UUID?fallback=5AC3F21B"
+    )
+    assert json.loads(weight_request.data) == {
+        "nfc_tag_id": "TRAY-UUID",
+        "weight": 1250.0,
+        "fallback_tag_id": "5AC3F21B",
+        "tag": {"format": "bambu", "material": "PLA"},
+    }
+    with pytest.raises(ValueError):
+        client.update_weight("TRAY-UUID", 1250, tag="bambu")

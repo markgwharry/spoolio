@@ -1,88 +1,96 @@
-/* -----------------------------------------------------------------------------
-   HEADER
-   ----------------------------------------------------------------------------- */
+/* Application chrome ------------------------------------------------------- */
 .app-header {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(17, 24, 39, 0.85) !important;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  min-width: 0;
+  background: rgba(23, 21, 19, 0.88) !important;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
   border-bottom: 1px solid var(--border-subtle) !important;
-  padding: 0.75rem 1.5rem !important;
+  padding: 0.65rem clamp(0.85rem, 3vw, 1.5rem) !important;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 2rem;
-  box-shadow: none !important;
-  transition: background 0.3s var(--ease-out);
+  gap: 1rem;
+  box-shadow: var(--header-shadow, none) !important;
+  transition: background 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out);
 }
 
 .light .app-header,
 body.light .app-header {
-  background: rgba(255, 255, 255, 0.85) !important;
+  background: rgba(250, 247, 242, 0.9) !important;
 }
 
 .brand {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 0.75rem;
-}
-
-.brand img {
-  height: 44px !important;
-  width: auto !important;
-  border-radius: var(--radius-md) !important;
-  background: transparent !important;
-  padding: 0 !important;
-  box-shadow: var(--shadow-sm) !important;
-  margin-right: 0 !important;
-  object-fit: contain;
-  /* Dark mode: invert to dark bg with cyan accent */
-  filter: invert(1) hue-rotate(160deg) brightness(1.1) !important;
-}
-
-/* Light mode: cyan tinge effect user likes */
-.light .brand img,
-body.light .brand img {
-  filter: invert(1) hue-rotate(180deg) !important;
-  box-shadow: var(--shadow-md) !important;
-}
-
-.brand h1 {
-  font-size: 1.25rem !important;
-  font-weight: 700 !important;
-  letter-spacing: -0.02em;
+  flex: 0 0 auto;
   color: var(--text-primary) !important;
-  margin: 0 !important;
+  text-decoration: none !important;
 }
 
-.brand p {
-  font-size: 0.75rem !important;
-  color: var(--text-muted) !important;
-  margin: 0.125rem 0 0 0 !important;
-  letter-spacing: 0.01em;
+.brand-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.brand-logo-mark {
+  display: block;
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+  flex: 0 0 auto;
+}
+
+.brand-logo-wordmark {
+  color: var(--text-primary);
+  font-family: var(--font-heading, 'Space Grotesk', sans-serif);
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.045em;
+}
+
+.auth-logo .brand-logo-mark {
+  width: 54px;
+  height: 54px;
+}
+
+.auth-logo .brand-logo-wordmark {
+  font-size: 1.65rem;
 }
 
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  justify-content: flex-end;
+  gap: 0.55rem;
+  min-width: 0;
   flex-wrap: nowrap;
 }
 
-/* -----------------------------------------------------------------------------
-   NAVIGATION
-   ----------------------------------------------------------------------------- */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  width: auto;
+  min-width: 0;
+  padding: 0.5rem 0.75rem;
+}
+
+/* Primary navigation ------------------------------------------------------- */
 .app-nav {
   position: sticky;
-  top: 60px;
-  z-index: 99;
-  background: rgba(17, 24, 39, 0.85) !important;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  top: 63px;
+  z-index: 90;
+  min-width: 0;
+  background: rgba(23, 21, 19, 0.88) !important;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
   border-bottom: 1px solid var(--border-subtle) !important;
-  padding: 0.5rem 1.5rem !important;
+  padding: 0.45rem clamp(0.85rem, 3vw, 1.5rem) !important;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -92,20 +100,22 @@ body.light .brand img {
 
 .light .app-nav,
 body.light .app-nav {
-  background: rgba(255, 255, 255, 0.85) !important;
+  background: rgba(250, 247, 242, 0.9) !important;
 }
 
 .app-nav a {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem !important;
+  justify-content: center;
+  gap: 0.45rem;
+  min-width: 0;
+  padding: 0.5rem 0.9rem !important;
   border-radius: var(--radius-md) !important;
   color: var(--text-muted) !important;
   text-decoration: none !important;
   font-size: 0.875rem !important;
-  font-weight: 500 !important;
-  transition: all 0.2s var(--ease-out) !important;
+  font-weight: 600 !important;
+  transition: color 0.18s var(--ease-out), background 0.18s var(--ease-out) !important;
   margin: 0 !important;
 }
 
@@ -116,62 +126,191 @@ body.light .app-nav {
 
 .app-nav a.active {
   color: var(--accent) !important;
-  background: var(--accent-muted, rgba(6, 182, 212, 0.15)) !important;
+  background: var(--accent-muted) !important;
 }
 
-nav a {
-  color: var(--text-muted) !important;
-  text-decoration: none !important;
-  font-weight: 500 !important;
+.app-nav svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
 }
 
-nav a:hover {
-  color: var(--text-primary) !important;
+/* Account menu ------------------------------------------------------------- */
+.user-menu {
+  position: relative;
 }
 
-/* -----------------------------------------------------------------------------
-   USER CHIP
-   ----------------------------------------------------------------------------- */
-.user-chip {
+.user-menu > summary {
+  list-style: none;
   display: inline-flex;
   align-items: center;
-  gap: 0.75rem;
-  background: var(--surface-2) !important;
-  border-radius: var(--radius-full) !important;
-  padding: 0.35rem 0.85rem !important;
-  color: var(--text-primary) !important;
-  transition: background 0.2s var(--ease-out);
+  gap: 0.5rem;
+  min-height: 42px;
+  padding: 0.3rem 0.55rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  background: var(--surface-2);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
 }
 
-.user-chip:hover {
-  background: var(--surface-3) !important;
+.user-menu > summary::-webkit-details-marker {
+  display: none;
 }
 
-.user-chip .avatar {
-  width: 32px !important;
-  height: 32px !important;
-  border-radius: 50% !important;
-  background: linear-gradient(135deg, var(--accent) 0%, #22d3ee 100%) !important;
-  color: #0a0f1a !important;
-  display: flex;
+.user-menu[open] > summary,
+.user-menu > summary:hover {
+  background: var(--surface-3);
+  border-color: var(--border);
+}
+
+.avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #f47c48;
+  color: #171513;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-weight: 700 !important;
-  font-size: 0.8rem !important;
+  font-size: 0.75rem;
+  font-weight: 800;
 }
 
-.user-chip .user-meta {
+.user-menu-popover {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  z-index: 120;
+  width: min(230px, calc(100vw - 2rem));
+  padding: 0.45rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--popover);
+  box-shadow: var(--shadow-xl);
+}
+
+.user-menu-email {
+  display: block;
+  padding: 0.5rem 0.65rem 0.65rem;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-menu-popover a,
+.user-menu-popover button {
   display: flex;
-  flex-direction: column;
-  line-height: 1.25;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  min-width: 0;
+  padding: 0.6rem 0.65rem;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-primary) !important;
+  font: inherit;
+  text-align: left;
+  text-decoration: none !important;
+  cursor: pointer;
 }
 
-.user-chip .user-meta span:first-child {
-  font-weight: 600;
-  font-size: 0.875rem;
+.user-menu-popover a:hover,
+.user-menu-popover button:hover {
+  background: var(--surface-2);
 }
 
-.user-chip .muted {
-  color: var(--text-muted) !important;
-  font-size: 0.75rem !important;
+.user-menu-popover svg {
+  width: 17px;
+  height: 17px;
+}
+
+@media (max-width: 700px) {
+  .app-header {
+    padding: 0.5rem 0.75rem !important;
+  }
+
+  .brand-logo-mark {
+    width: 38px;
+    height: 38px;
+  }
+
+  .brand-logo-wordmark {
+    font-size: 1.15rem;
+  }
+
+  .cmdk-hint kbd,
+  .theme-label,
+  .user-menu-name,
+  .user-menu > summary > svg {
+    display: none;
+  }
+
+  .cmdk-hint,
+  .theme-toggle {
+    width: 40px;
+    height: 40px;
+    padding: 0 !important;
+    justify-content: center;
+  }
+
+  .user-menu > summary {
+    width: 40px;
+    height: 40px;
+    min-height: 40px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .app-nav.is-authenticated {
+    position: fixed;
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 200;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0;
+    padding: 0.35rem max(0.35rem, env(safe-area-inset-right)) calc(0.35rem + env(safe-area-inset-bottom)) max(0.35rem, env(safe-area-inset-left)) !important;
+    border-top: 1px solid var(--border-subtle) !important;
+    border-bottom: 0 !important;
+    overflow: visible;
+  }
+
+  .app-nav.is-authenticated a {
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: 0.4rem 0.15rem !important;
+    font-size: 0.68rem !important;
+    line-height: 1.1;
+  }
+
+  .app-nav.is-authenticated a.active {
+    background: transparent !important;
+  }
+
+  .app-nav.is-public {
+    top: 55px;
+    padding: 0.35rem 0.75rem !important;
+  }
+
+  .app-shell:has(.app-nav.is-authenticated) .app-main {
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 390px) {
+  .brand-logo-wordmark {
+    display: none;
+  }
+
+  .header-actions {
+    gap: 0.35rem;
+  }
 }

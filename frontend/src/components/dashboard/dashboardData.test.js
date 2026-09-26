@@ -1,6 +1,6 @@
 import { requestJson } from '../../api/request';
 import { buildSuppliesReportRows } from './SuppliesReport';
-import { sortGroupedSpools } from '../../hooks/useDashboardView';
+import { filterInventory, sortGroupedSpools } from '../../hooks/useDashboardView';
 import { vi } from 'vitest';
 
 describe('dashboard data contracts', () => {
@@ -74,5 +74,38 @@ describe('dashboard data contracts', () => {
 
     expect(Object.keys(sorted)).toEqual(['PLA', 'PETG']);
     expect(Object.keys(sorted.PLA)).toEqual(['Red', 'Green']);
+  });
+
+  test('dashboard filters change the visible spool and refill collections', () => {
+    const spools = [
+      { id: 1, material_id: 10, color_id: 20, manufacturer_id: 30, weight_remaining: 500 },
+      { id: 2, material_id: 10, color_id: 21, manufacturer_id: 30, weight_remaining: 50, low_stock_threshold: 100 },
+    ];
+    const refills = [
+      { id: 3, material_id: 10, color_id: 21, manufacturer_id: 30, weight_total: 1000 },
+    ];
+
+    const filtered = filterInventory(spools, refills, {
+      materialId: '10',
+      colorId: '21',
+      manufacturerId: '',
+      subtypeMode: 'all',
+      lowStockOnly: false,
+      includeRefills: true,
+    });
+
+    expect(filtered.visibleSpools.map((spool) => spool.id)).toEqual([2]);
+    expect(filtered.visibleRefills.map((refill) => refill.id)).toEqual([3]);
+
+    const lowStock = filterInventory(spools, refills, {
+      materialId: '',
+      colorId: '',
+      manufacturerId: '',
+      subtypeMode: 'all',
+      lowStockOnly: true,
+      includeRefills: true,
+    });
+    expect(lowStock.visibleSpools.map((spool) => spool.id)).toEqual([2]);
+    expect(lowStock.visibleRefills).toEqual([]);
   });
 });

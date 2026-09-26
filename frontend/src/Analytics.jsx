@@ -168,7 +168,7 @@ export default function Analytics() {
     };
   }, [totalRecent, depletionForecast]);
 
-  // Smart insights
+  // Local highlights derived from the user's inventory and usage history.
   const insights = useMemo(() => {
     const result = [];
 
@@ -433,7 +433,11 @@ export default function Analytics() {
               </svg>
             </div>
           </div>
-          <div className="stat-value">{stats.avgLifespan}<span> days</span></div>
+          <div className="stat-value">
+            {depletionForecast.length > 0
+              ? <>{stats.avgLifespan}<span> days</span></>
+              : '—'}
+          </div>
           <div className="stat-label">Avg remaining</div>
         </div>
 
@@ -588,7 +592,7 @@ export default function Analytics() {
           </div>
         </div>
 
-        {/* Smart Insights */}
+        {/* Local highlights */}
         <div className="analytics-card insights-card">
           <div className="card-header">
             <h3 className="card-title">
@@ -597,9 +601,8 @@ export default function Analytics() {
                   <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
                 </svg>
               </span>
-              Smart Insights
+              Highlights
             </h3>
-            <span className="ai-badge">✨ AI</span>
           </div>
           <div className="card-body">
             {insights.length > 0 ? (
@@ -615,17 +618,8 @@ export default function Analytics() {
                 ))}
               </div>
             ) : (
-              <div className="chart-empty">Add more usage data to get personalized insights.</div>
+              <div className="chart-empty">Record some filament usage to reveal helpful patterns.</div>
             )}
-            <div className="insights-cta">
-              <button className="insights-cta-btn" disabled>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
-                </svg>
-                Get More Insights
-                <span className="ai-badge">Claude</span>
-              </button>
-            </div>
           </div>
         </div>
       </div>
@@ -683,43 +677,6 @@ export default function Analytics() {
           ) : (
             <div className="chart-empty">No usage data in this period to forecast from.</div>
           )}
-        </div>
-      </div>
-
-      {/* Print History Teaser */}
-      <div className="analytics-card print-history-card">
-        <div className="card-header">
-          <h3 className="card-title">
-            <span className="card-title-icon cyan">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M6 9H4.5a2.5 2.5 0 010-5H6"/><path d="M18 9h1.5a2.5 2.5 0 000-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0012 0V2Z"/>
-              </svg>
-            </span>
-            Print History
-          </h3>
-          <span className="coming-badge">Coming Soon</span>
-        </div>
-        <div className="card-body">
-          <div className="print-history-teaser">
-            <p>Connect your printer to automatically track filament usage per print</p>
-            <div className="printer-grid">
-              <div className="printer-card">
-                <div className="printer-icon">🖨️</div>
-                <div className="printer-name">Bambu Lab</div>
-                <div className="printer-status">Coming Soon →</div>
-              </div>
-              <div className="printer-card">
-                <div className="printer-icon">🔧</div>
-                <div className="printer-name">Prusa Connect</div>
-                <div className="printer-status planned">Planned</div>
-              </div>
-              <div className="printer-card">
-                <div className="printer-icon">🐙</div>
-                <div className="printer-name">OctoPrint</div>
-                <div className="printer-status planned">Planned</div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 

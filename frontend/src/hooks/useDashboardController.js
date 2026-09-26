@@ -1,4 +1,18 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+
+const GROUP_STORAGE_KEY = 'spoolio:dashboard-groups';
+
+const readStoredGroups = () => {
+  try {
+    const stored = JSON.parse(localStorage.getItem(GROUP_STORAGE_KEY) || '{}');
+    return {
+      expanded: stored.expanded || {},
+      collapsed: stored.collapsed || {},
+    };
+  } catch {
+    return { expanded: {}, collapsed: {} };
+  }
+};
 
 const slug = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '-');
 
@@ -8,8 +22,9 @@ export default function useDashboardController({
   mutations,
   onMessage,
 }) {
-  const [expanded, setExpanded] = useState({});
-  const [collapsed, setCollapsed] = useState({});
+  const [storedGroups] = useState(readStoredGroups);
+  const [expanded, setExpanded] = useState(storedGroups.expanded);
+  const [collapsed, setCollapsed] = useState(storedGroups.collapsed);
   const [highlightedSpoolId, setHighlightedSpoolId] = useState(null);
   const [selectedSpool, setSelectedSpool] = useState(null);
   const [spoolHistory, setSpoolHistory] = useState([]);
@@ -22,6 +37,12 @@ export default function useDashboardController({
     material: Object.fromEntries(data.materials.map((item) => [item.id, item.name])),
     color: Object.fromEntries(data.colors.map((item) => [item.id, item.name])),
   }), [data.materials, data.colors]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(GROUP_STORAGE_KEY, JSON.stringify({ expanded, collapsed }));
+    } catch {}
+  }, [expanded, collapsed]);
 
   const refreshAdminMetadata = async () => {
     try {

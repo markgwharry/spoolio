@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { formatGrams } from '../../utils/colorUtils';
-import SpoolRack from './SpoolRack';
+import EmptyState from '../EmptyState';
 
 export default function InventoryOverview({
   spools,
@@ -11,7 +11,6 @@ export default function InventoryOverview({
   spoolTypes,
   onAddSpool,
   onJumpToSpool,
-  onSelectRackSpool,
 }) {
   const [showLowStockPopup, setShowLowStockPopup] = useState(true);
   const activeSpools = useMemo(
@@ -20,10 +19,6 @@ export default function InventoryOverview({
   );
   const lowStockSpools = activeSpools.filter(
     (spool) => spool.weight_remaining <= (spool.low_stock_threshold ?? 100),
-  );
-  const totalWeight = activeSpools.reduce(
-    (sum, spool) => sum + (spool.weight_remaining || 0),
-    0,
   );
   const names = {
     material: Object.fromEntries(materials.map((item) => [item.id, item.name])),
@@ -113,9 +108,13 @@ export default function InventoryOverview({
         </div>
       )}
 
-      <section className="spool-rack-section">
-        <div className="section-header">
-          <h2>Spool Rack</h2>
+      <section className="library-hero">
+        <div className="library-hero-copy">
+          <p className="eyebrow">Your workshop</p>
+          <h1>Filament library</h1>
+          <p>See what is ready to print, what is running low, and what is waiting in reserve.</p>
+        </div>
+        <div className="library-hero-actions">
           <button type="button" className="button add-spool-btn" onClick={onAddSpool}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M12 5v14M5 12h14" />
@@ -123,22 +122,22 @@ export default function InventoryOverview({
             Add Spool
           </button>
         </div>
-        <SpoolRack
-          items={activeSpools.map((spool) => ({
-            ...spool,
-            colorName: names.color[spool.color_id],
-            materialName: names.material[spool.material_id],
-          }))}
-          onSpoolClick={onSelectRackSpool}
-        />
-        <div className="spool-rack-legend">
-          <span><span className="legend-dot active" />{activeSpools.length} active</span>
-          <span><span className="legend-dot low" />{lowStockSpools.length} low stock</span>
-          <span className="legend-stat">
-            Avg: {activeSpools.length ? Math.round(totalWeight / activeSpools.length) : 0}g
-          </span>
-        </div>
       </section>
+      {activeSpools.length === 0 && (
+        <div className="first-run-card">
+          <EmptyState
+            title="Build your first filament rack"
+            message="Add one spool and Spoolio will start tracking its colour, remaining weight and estimated cost."
+            actionLabel="Add your first spool"
+            onAction={onAddSpool}
+          />
+          <ol className="first-run-steps" aria-label="Getting started">
+            <li><span>1</span>Choose the filament</li>
+            <li><span>2</span>Enter its weight</li>
+            <li><span>3</span>Print with confidence</li>
+          </ol>
+        </div>
+      )}
     </>
   );
 }

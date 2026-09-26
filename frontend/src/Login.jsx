@@ -1,6 +1,6 @@
 import React, { useState, useContext } from 'react';
 import { AuthContext } from './AuthContext';
-import logo from './logo-cropped.webp';
+import BrandLogo from './components/BrandLogo';
 import { useNavigate, Link } from 'react-router-dom';
 import { useRegistration } from './RegistrationContext';
 
@@ -72,7 +72,7 @@ export default function Login() {
   return (
     <section className="auth-card" aria-labelledby="login-title">
       <div className="auth-logo">
-        <img src={logo} alt="Spoolio logo" />
+        <BrandLogo />
       </div>
       <h2 id="login-title">Welcome back</h2>
       <p className="form-note">Enter your credentials to reach your dashboard.</p>

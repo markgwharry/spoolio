@@ -34,6 +34,26 @@ section:
 - `USE_SH1106=1` selects SH1106; set it to `0` for SSD1306.
 - `DISABLE_NFC=1` permits scale/display development without the PN532.
 
+## Bambu Lab tags
+
+`SpoolioESP8266` decodes Bambu Lab spool tags (MIFARE Classic 1K) with the
+PN532 it already uses. It derives each sector key from the tag UID
+(HKDF-SHA256, as documented by the Bambu Research Group's RFID-Tag-Guide),
+reads sectors 0-3, and then:
+
+- identifies the spool by its **tray UUID**, which both tags on a spool share,
+  and sends the chip UID as `fallback_tag_id`;
+- shows the decoded filament (e.g. "Bambu PLA Basic") even before the spool is
+  registered;
+- attaches material, colour, filament weight and temperatures to the upload, so
+  an unknown spool appears on the Hardware page ready to create in one step.
+
+Other tags are handled exactly as before. Set `ENABLE_BAMBU_TAGS=0` to turn
+decoding off, and use the `bambu` serial command to print the last decoded tag
+while bench testing. The decoder lives in `BambuTag.h`/`BambuTag.cpp`, with no
+Arduino dependencies; `tests/test_bambu_tag_firmware.py` compiles it on a
+desktop and checks the key derivation against an independent HKDF.
+
 ## ESP32-CYD provisioning
 
 `SpoolioCYDDisplay` is currently a reference display client, not a zero-touch

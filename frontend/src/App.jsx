@@ -1,5 +1,5 @@
 import React from 'react';
-import { Route, Routes, Link, NavLink, useLocation } from 'react-router-dom';
+import { Route, Routes, Link, NavLink, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, AuthContext } from './AuthContext';
 import ErrorBoundary from './ErrorBoundary';
 import Register from './Register';
@@ -7,7 +7,7 @@ import Login from './Login';
 import Icons from './components/Icons';
 import SpoolSpinner from './components/SpoolSpinner';
 import CommandPalette from './components/CommandPalette';
-import logo from './logo-cropped.webp';
+import BrandLogo from './components/BrandLogo';
 import { RegistrationProvider, useRegistration } from './RegistrationContext';
 
 const Dashboard = React.lazy(() => import('./Dashboard'));
@@ -20,15 +20,17 @@ function AppNavigation() {
   const { user, token } = React.useContext(AuthContext);
   const { action, loading } = useRegistration();
   const isAuthenticated = Boolean(user) || Boolean(token);
-  const navItems = React.useMemo(() => ([
-    { to: '/', label: 'Home', icon: Icons.Home },
+  const navItems = React.useMemo(() => (isAuthenticated ? [
     { to: '/dashboard', label: 'Dashboard', icon: Icons.Dashboard },
     { to: '/analytics', label: 'Analytics', icon: Icons.Analytics },
-    { to: '/bits', label: 'Bits', icon: Icons.Bits },
+    { to: '/parts', label: 'Parts', icon: Icons.Bits },
     { to: '/hardware', label: 'Hardware', icon: Icons.Hardware },
-  ]), []);
+  ] : [
+    { to: '/', label: 'Home', icon: Icons.Home },
+    { to: '/login', label: 'Log in', icon: Icons.LogIn },
+  ]), [isAuthenticated]);
   return (
-    <nav className="app-nav" aria-label="Primary">
+    <nav className={`app-nav ${isAuthenticated ? 'is-authenticated' : 'is-public'}`} aria-label="Primary">
       {navItems.map(item => (
         <NavLink
           key={item.to}
@@ -40,24 +42,11 @@ function AppNavigation() {
           <span>{item.label}</span>
         </NavLink>
       ))}
-      {isAuthenticated ? (
-        <NavLink to="/account" className={({ isActive }) => isActive ? 'active' : undefined}>
-          <Icons.Settings />
-          <span>Account</span>
+      {!isAuthenticated && !loading && action !== 'closed' && (
+        <NavLink to="/register" className={({ isActive }) => isActive ? 'active' : undefined}>
+          <Icons.User />
+          <span>{action === 'waitlist' ? 'Waitlist' : 'Join'}</span>
         </NavLink>
-      ) : (
-        <>
-          <NavLink to="/login" className={({ isActive }) => isActive ? 'active' : undefined}>
-            <Icons.LogIn />
-            <span>Login</span>
-          </NavLink>
-          {!loading && action !== 'closed' && (
-            <NavLink to="/register" className={({ isActive }) => isActive ? 'active' : undefined}>
-              <Icons.User />
-              <span>{action === 'waitlist' ? 'Waitlist' : 'Create account'}</span>
-            </NavLink>
-          )}
-        </>
       )}
     </nav>
   );
@@ -65,16 +54,7 @@ function AppNavigation() {
 
 function UserChip() {
   const { user, logout } = React.useContext(AuthContext);
-  if (!user) {
-    return (
-      <div className="user-chip">
-        <span className="user-meta">
-          Need an account?
-        </span>
-        <Link to="/login">Login</Link>
-      </div>
-    );
-  }
+  if (!user) return null;
   const initials = (user.username || user.email || '?')
     .split(' ')
     .slice(0, 2)
@@ -82,14 +62,20 @@ function UserChip() {
     .join('')
     .toUpperCase();
   return (
-    <div className="user-chip" aria-label="Account menu">
-      <div className="avatar" aria-hidden="true">{initials}</div>
-      <div className="user-meta">
-        <span>{user.username}</span>
-        {user.email && <span className="muted">{user.email}</span>}
+    <details className="user-menu">
+      <summary aria-label="Open account menu">
+        <span className="avatar" aria-hidden="true">{initials}</span>
+        <span className="user-menu-name">{user.username || user.email}</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+          <path d="m6 9 6 6 6-6" />
+        </svg>
+      </summary>
+      <div className="user-menu-popover">
+        {user.email && <span className="user-menu-email">{user.email}</span>}
+        <Link to="/account"><Icons.Settings /> Account settings</Link>
+        <button type="button" onClick={logout}><Icons.LogIn /> Log out</button>
       </div>
-      <button type="button" onClick={logout} className="ghost-button">Logout</button>
-    </div>
+    </details>
   );
 }
 
@@ -130,6 +116,11 @@ function Home() {
       </section>
     </div>
   );
+}
+
+function HomeRoute() {
+  const { user, token } = React.useContext(AuthContext);
+  return (user || token) ? <Navigate to="/dashboard" replace /> : <Home />;
 }
 
 function DarkModeToggle() {
@@ -178,16 +169,11 @@ function DarkModeToggle() {
 
   return (
     <button
+      type="button"
+      className="theme-toggle"
       onClick={() => setIsDark(d => !d)}
       aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
       title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '0.5em',
-        minWidth: 'auto',
-        padding: '0.5em 1em'
-      }}
     >
       {isDark ? (
         <>
@@ -202,14 +188,14 @@ function DarkModeToggle() {
             <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
             <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
           </svg>
-          Light
+          <span className="theme-label">Light</span>
         </>
       ) : (
         <>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
           </svg>
-          Dark
+          <span className="theme-label">Dark</span>
         </>
       )}
     </button>
@@ -229,9 +215,9 @@ function AppHeader() {
   }, []);
   return (
     <header className="app-header">
-      <div className="brand">
-        <img src={logo} alt="Spoolio logo" loading="lazy" decoding="async" width="120" height="40" />
-      </div>
+      <Link to={user ? '/dashboard' : '/'} className="brand" aria-label="Spoolio home">
+        <BrandLogo />
+      </Link>
       <div className="header-actions">
         {user && (
           <button
@@ -278,13 +264,14 @@ function AppShell() {
         <ErrorBoundary>
           <React.Suspense fallback={<div className="page-loading"><SpoolSpinner label="Loading…" /></div>}>
             <Routes>
-              <Route path="/" element={<Home />} />
+              <Route path="/" element={<HomeRoute />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/analytics" element={<Analytics />} />
               <Route path="/projects/:id" element={<ProjectDetail />} />
-              <Route path="/bits" element={<BitsInventory />} />
+              <Route path="/parts" element={<BitsInventory />} />
+              <Route path="/bits" element={<Navigate to="/parts" replace />} />
               <Route path="/hardware" element={<HardwareManager />} />
               <Route path="/account" element={<AccountSettings />} />
             </Routes>

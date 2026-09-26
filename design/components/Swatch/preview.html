@@ -1,0 +1,22 @@
+<!-- @dsCard group="Filament" height=112 -->
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Swatch — preview</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
+
+</head>
+<body>
+<div id="root" class="fm-row"></div>
+<script>
+  var F = window.Filamentarium, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(
+    h(React.Fragment, null,
+      h(F.Swatch, { hex: '#0a5ba8', size: 'lg', label: 'Cobalt Blue' }),
+      h(F.Swatch, { hex: '#e9e3d3', size: 'md', label: 'Bone White' }),
+      h(F.Swatch, { hex: '#1e4d3a', size: 'md', label: 'Racing Green' }),
+      h(F.Swatch, { hex: '#b3261e', size: 'sm', label: 'Signal Red' }),
+      h(F.Swatch, { hex: '#f4c21b', size: 'sm', label: 'Sunflower Yellow' }))
+  );
+</script>
+</body>
+</html>

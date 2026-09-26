@@ -1,0 +1,119 @@
+/* Compiled from design/tokens.json. Regenerate when tokens.json changes. */
+
+:root, [data-theme="daylight"] {
+  --paper: #f4ecdd;
+  --paper-sunk: #ede2cd;
+  --paper-active: #e0cfb2;
+  --paper-raised: #fbf7ef;
+  --vellum: #fffdf8;
+  --case: #e6d9c1;
+  --plank: #7c5a3a;
+  --rule: #d9cbb3;
+  --rule-soft: #e6dccb;
+  --control-edge: #967f5f;
+  --ink: #2e2419;
+  --ink-muted: #5e4e3c;
+  --sepia: #8b5e3c;
+  --sepia-deep: #6b4527;
+  --sepia-soft: #f1e3cf;
+  --on-sepia: #ffffff;
+  --oxblood: #7a2e2a;
+  --oxblood-soft: #f2dcd6;
+  --on-oxblood: #ffffff;
+  --ledger-blue: #2f5566;
+  --ledger-soft: #dde7ea;
+  --swatch-ground: #ffffff;
+  --swatch-edge: #d6d0c4;
+  --spine-edge: rgba(255, 255, 255, 0.35);
+  --print-paper: #ffffff;
+  --print-ink: #111111;
+  --link: var(--sepia);
+  --shadow-card: 0 14px 28px -20px rgba(46, 36, 25, 0.35);
+  --shadow-case: inset 0 10px 18px -8px rgba(46, 36, 25, 0.28);
+  --focus-ring: 0 0 0 2px #f4ecdd, 0 0 0 4px #8b5e3c;
+}
+
+[data-theme="lamp"] {
+  color-scheme: dark;
+  --paper: #1c1611;
+  --paper-sunk: #231c15;
+  --paper-active: #342a1f;
+  --paper-raised: #2a2119;
+  --vellum: #30271e;
+  --case: #15110c;
+  --plank: #5a4128;
+  --rule: #3e3326;
+  --rule-soft: #342a1f;
+  --control-edge: #8a7764;
+  --ink: #efe4d2;
+  --ink-muted: #bfae95;
+  --sepia: #d4a373;
+  --sepia-deep: #e8c49a;
+  --sepia-soft: #3a2c1e;
+  --on-sepia: #1c1611;
+  --oxblood: #e0907f;
+  --oxblood-soft: #3d1f1b;
+  --on-oxblood: #1c1611;
+  --ledger-blue: #9cc3d4;
+  --ledger-soft: #1d2c33;
+  --swatch-ground: #e9e7e2;
+  --swatch-edge: #8f887c;
+  --spine-edge: rgba(255, 255, 255, 0.12);
+  --print-paper: #ffffff;
+  --print-ink: #111111;
+  --link: var(--sepia);
+  --shadow-card: 0 14px 28px -20px rgba(0, 0, 0, 0.7);
+  --shadow-case: inset 0 10px 18px -8px rgba(0, 0, 0, 0.6);
+  --focus-ring: 0 0 0 2px #1c1611, 0 0 0 4px #d4a373;
+}
+
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --radius-xs: 3px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-pill: 9999px;
+  --control-height: 44px;
+  --control-height-lg: 48px;
+  --sidebar-width: 248px;
+  --shelf-height: 180px;
+  --font-serif: Literata, Georgia, "Times New Roman", serif;
+  --font-sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+.display { font-family: var(--font-serif); font-size: 44px; line-height: 46px; font-weight: 600; letter-spacing: -0.015em; }
+
+.wordmark { font-family: var(--font-serif); font-size: 25px; line-height: 30px; font-weight: 600; letter-spacing: -0.01em; }
+
+.heading { font-family: var(--font-serif); font-size: 24px; line-height: 30px; font-weight: 600; }
+
+.subheading { font-family: var(--font-serif); font-size: 19px; line-height: 26px; font-weight: 600; }
+
+.spine { font-family: var(--font-serif); font-size: 12px; line-height: 14px; font-weight: 400; letter-spacing: 0.01em; }
+
+.marginalia { font-family: var(--font-serif); font-size: 16px; line-height: 24px; font-weight: 400; font-style: italic; }
+
+.body { font-family: var(--font-sans); font-size: 15px; line-height: 22px; font-weight: 400; }
+
+.control { font-family: var(--font-sans); font-size: 14px; line-height: 20px; font-weight: 500; }
+
+.small { font-family: var(--font-sans); font-size: 13px; line-height: 18px; font-weight: 400; }
+
+.eyebrow { font-family: var(--font-sans); font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.14em; }
+
+.label { font-family: var(--font-sans); font-size: 11px; line-height: 14px; font-weight: 600; letter-spacing: 0.12em; }
+
+.accession { font-family: var(--font-mono); font-size: 13px; line-height: 18px; font-weight: 400; letter-spacing: 0.06em; }
+
+.figure { font-family: var(--font-mono); font-size: 13px; line-height: 18px; font-weight: 400; }
+
+.stamp { font-family: var(--font-mono); font-size: 12px; line-height: 16px; font-weight: 500; letter-spacing: 0.08em; }

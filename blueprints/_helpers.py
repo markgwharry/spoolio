@@ -18,6 +18,7 @@ from sqlalchemy import and_, or_
 from werkzeug.utils import secure_filename
 
 from extensions import db
+from hardware_tags import load_orphan_tag_metadata, tag_suggestions
 import models
 from time_utils import utc_now_naive
 
@@ -385,6 +386,7 @@ def serialize_refill(refill):
 
 
 def serialize_orphan_tag(orphan):
+    metadata = load_orphan_tag_metadata(orphan)
     return {
         'id': orphan.id,
         'nfc_tag_id': orphan.nfc_tag_id,
@@ -393,6 +395,9 @@ def serialize_orphan_tag(orphan):
         'last_weight': orphan.last_weight,
         'hardware_device_id': orphan.hardware_device_id,
         'user_id': orphan.user_id,
+        'tag_format': orphan.tag_format,
+        'tag_metadata': metadata,
+        'suggestions': tag_suggestions(metadata),
     }
 
 
@@ -718,6 +723,25 @@ def _ensure_group(user_id, material_id, color_id):
         # Keep group creation atomic with the spool/refill that needs it.
         db.session.flush()
     return group
+
+
+def find_owned_spool_by_tag(user_id, *identifiers):
+    """Return the owner's spool linked to the first matching identifier.
+
+    Devices send their preferred identifier first (for Bambu Lab tags, the tray
+    UUID shared by both tags on a spool) and may add the raw chip UID as a
+    fallback so spools linked by chip UID keep resolving.
+    """
+    for identifier in identifiers:
+        if not identifier:
+            continue
+        spool = models.FilamentSpool.query.filter_by(
+            nfc_tag_id=identifier,
+            user_id=user_id,
+        ).first()
+        if spool:
+            return spool
+    return None
 
 
 def _maybe_create_empty_from_spool(spool):

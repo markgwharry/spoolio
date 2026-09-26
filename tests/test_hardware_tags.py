@@ -93,13 +93,18 @@ def test_unknown_bambu_tag_is_recorded_with_decoded_metadata(
 
 def test_invalid_tag_or_fallback_types_are_rejected(client, user, hardware_device_factory):
     device = hardware_device_factory(user_id=user.id)
-    for extra in ({"tag": "bambu"}, {"fallback_tag_id": 123}):
+    cases = (
+        ({"tag": "bambu"}, "tag must be an object"),
+        ({"fallback_tag_id": 123}, "fallback_tag_id must be text"),
+    )
+    for extra, message in cases:
         response = client.post(
             "/api/hardware/weight-update",
             headers=device_headers(device),
             json={"nfc_tag_id": TRAY_UUID, "weight": 900.0, **extra},
         )
         assert response.status_code == 400
+        assert response.get_json() == {"error": message}
 
 
 def test_lookup_and_weight_update_fall_back_to_chip_uid(
@@ -310,6 +315,20 @@ def test_create_spool_from_orphan_requires_names_without_metadata(
     )
     assert response.status_code == 400
     assert "required" in response.get_json()["error"]
+
+    non_text = client.post(
+        "/api/hardware/orphans/create-spool",
+        headers=auth_headers_factory(user.id),
+        json={
+            "nfc_tag_id": "04A1B2C3D4",
+            "spool_type_id": reference_data.spool_type_id,
+            "material": 42,
+        },
+    )
+    assert non_text.status_code == 400
+    assert non_text.get_json() == {
+        "error": "material, color, manufacturer and subtype must be text"
+    }
 
 
 def test_create_spool_from_another_tenants_orphan_is_refused(

@@ -281,11 +281,15 @@ def update_spool_weight():
 
     if not nfc_tag_id or weight is None:
         return jsonify({'error': 'NFC tag ID and weight are required'}), 400
+    # Fixed messages: never echo exception text back to the caller.
     try:
         fallback_tag_id = optional_identifier(data, 'fallback_tag_id')
+    except ValueError:
+        return jsonify({'error': 'fallback_tag_id must be text'}), 400
+    try:
         tag_metadata = normalize_tag_metadata(data.get('tag'))
-    except ValueError as exc:
-        return jsonify({'error': str(exc)}), 400
+    except ValueError:
+        return jsonify({'error': 'tag must be an object'}), 400
 
     current_user_id = getattr(request.hardware_device, 'user_id', None)
     spool = find_owned_spool_by_tag(current_user_id, nfc_tag_id, fallback_tag_id)
@@ -677,8 +681,8 @@ def create_spool_from_orphan_tag():
             'subtype',
             suggest_subtype(metadata.get('material'), metadata.get('variant')),
         )
-    except ValueError as exc:
-        return jsonify({'error': str(exc)}), 400
+    except ValueError:
+        return jsonify({'error': 'material, color, manufacturer and subtype must be text'}), 400
     if not material_name or not color_name or not manufacturer_name:
         return jsonify({'error': 'material, color and manufacturer are required'}), 400
 

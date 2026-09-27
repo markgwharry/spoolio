@@ -1,0 +1,22 @@
+<!-- @dsCard group="Filament" height=200 -->
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>SpoolSpine — preview</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
+
+</head>
+<body>
+<div id="root" class="fm-row"></div>
+<script>
+  var F = window.Filamentarium, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(
+    h('div', { style: { display: 'flex', alignItems: 'flex-end', gap: 5 } },
+      h(F.SpoolSpine, { no: '0142', name: 'Cobalt Blue', material: 'PLA', hex: '#0a5ba8', grams: 612, width: 46, height: 150, href: '#' }),
+      h(F.SpoolSpine, { no: '0138', name: 'Jade White', material: 'PLA', hex: '#f1efe6', grams: 880, width: 44, height: 146, href: '#' }),
+      h(F.SpoolSpine, { no: '0151', name: 'Matte Terracotta', material: 'PLA', hex: '#b5563a', grams: 945, width: 52, height: 158, href: '#' }),
+      h(F.SpoolSpine, { no: '0133', name: 'Sunflower Yellow', material: 'PLA', hex: '#f4c21b', grams: 118, width: 50, height: 156, flag: 'low', href: '#' }),
+      h(F.SpoolSpine, { no: '0171', name: 'ASA Grey', material: 'ASA', hex: '#7d8084', grams: 780, width: 48, height: 152, flag: 'dry', href: '#' }))
+  );
+</script>
+</body>
+</html>

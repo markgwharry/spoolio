@@ -64,7 +64,7 @@ export default function BitsInventory() {
           const d = await bitsRes.json();
           setBits(Array.isArray(d.bits) ? d.bits : []);
         } else {
-          setError('Failed to load bits');
+          setError('Failed to load parts');
         }
         if (projRes.ok) {
           const d = await projRes.json();
@@ -194,11 +194,11 @@ export default function BitsInventory() {
       const data = await res.json();
       if (res.ok) {
         setBits(prev => [...prev, data.bit]);
-        setMessage('Bit added!');
+        setMessage('Part added.');
         setShowAddModal(false);
         setForm({ category_id: '', category_text: '', name: '', description: '', quantity_total: '', unit: 'pcs', price: '', supplier: '', purchase_date: '', notes: '', low_stock_threshold: 10 });
       } else {
-        setMessage(data.msg || 'Failed to add bit');
+        setMessage(data.msg || 'Failed to add part');
       }
     } catch {
       setMessage('Error connecting to server');
@@ -272,7 +272,7 @@ export default function BitsInventory() {
       const res = await authFetch(`/api/bits/${bit.id}/`, { method: 'DELETE' });
       if (res.ok) {
         setBits(prev => prev.filter(b => b.id !== bit.id));
-        setMessage('Bit deleted');
+        setMessage('Part deleted');
       } else {
         const data = await res.json();
         setMessage(data.msg || 'Failed to delete');
@@ -305,7 +305,7 @@ export default function BitsInventory() {
       const data = await res.json();
       if (res.ok) {
         setBits(prev => prev.map(b => b.id === data.bit.id ? data.bit : b));
-        setMessage('Bit updated');
+        setMessage('Part updated');
         setEditingBit(null);
       } else {
         setMessage(data.msg || 'Failed to update');
@@ -317,17 +317,20 @@ export default function BitsInventory() {
 
   // --- Render ---
 
-  if (loading) return <div className="page-loading"><SpoolSpinner label="Loading bits…" /></div>;
+  if (loading) return <div className="page-loading"><SpoolSpinner label="Loading parts…" /></div>;
   if (error) return <div className="error-banner">{error}</div>;
 
   const stockPct = (b) => b.quantity_total > 0 ? Math.round((b.quantity_remaining / b.quantity_total) * 100) : 0;
   const isLow = (b) => b.quantity_remaining <= (b.low_stock_threshold || 0);
 
   return (
-    <div style={{ maxWidth: 960, margin: '0 auto', padding: '1.5rem 1rem' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.75rem' }}>
-        <h1 style={{ margin: 0, fontSize: '1.5rem' }}>Bits Inventory</h1>
-        <button onClick={() => setShowAddModal(true)} style={btnStyle}>+ Add Bit</button>
+    <div className="parts-page" style={{ maxWidth: 960, margin: '0 auto', padding: '1.5rem 1rem' }}>
+      <div className="parts-page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+        <div>
+          <p className="eyebrow">Workshop inventory</p>
+          <h1 style={{ margin: 0, fontSize: '1.5rem' }}>Parts</h1>
+        </div>
+        <button onClick={() => setShowAddModal(true)} style={btnStyle}>+ Add part</button>
       </div>
 
       {message && (
@@ -337,6 +340,7 @@ export default function BitsInventory() {
         </div>
       )}
 
+      {bits.length > 0 && <>
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem', marginBottom: '1.5rem' }}>
         <StatCard label="Total Items" value={stats.total} />
@@ -349,16 +353,16 @@ export default function BitsInventory() {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem', alignItems: 'center' }}>
         <input
           type="text"
-          placeholder="Search bits..."
+          placeholder="Search parts…"
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
-          style={inputStyle}
+          style={filterInputStyle}
         />
-        <select value={filterCategoryId} onChange={e => setFilterCategoryId(e.target.value)} style={inputStyle}>
+        <select value={filterCategoryId} onChange={e => setFilterCategoryId(e.target.value)} style={filterInputStyle}>
           <option value="">All categories</option>
           {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
-        <select value={sortMode} onChange={e => setSortMode(e.target.value)} style={inputStyle}>
+        <select value={sortMode} onChange={e => setSortMode(e.target.value)} style={filterInputStyle}>
           <option value="category">Sort: Category</option>
           <option value="alpha">Sort: A-Z</option>
           <option value="quantity-desc">Sort: Qty High-Low</option>
@@ -370,13 +374,16 @@ export default function BitsInventory() {
           Low stock only
         </label>
       </div>
+      </>}
 
       {/* Grouped list */}
       {filteredBits.length === 0 ? (
         bits.length === 0 ? (
           <EmptyState
             title="No parts yet"
-            message="Add your first hardware component to start tracking stock."
+            message="Add screws, bearings, sensors, connectors, or any workshop consumable you want to keep stocked."
+            actionLabel="Add your first part"
+            onAction={() => setShowAddModal(true)}
           />
         ) : (
           <EmptyState
@@ -437,10 +444,10 @@ export default function BitsInventory() {
 
       {/* --- Modals --- */}
 
-      {/* Add Bit Modal */}
+      {/* Add part modal */}
       {showAddModal && createPortal(
         <Overlay onClose={() => setShowAddModal(false)}>
-          <h2 style={{ marginTop: 0, fontSize: '1.2rem' }}>Add Bit</h2>
+          <h2 style={{ marginTop: 0, fontSize: '1.2rem' }}>Add part</h2>
           <form onSubmit={handleAddBit}>
             <div style={{ marginBottom: 8 }}>
               <label style={labelStyle}>Category</label>
@@ -507,7 +514,7 @@ export default function BitsInventory() {
             </div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <button type="button" onClick={() => setShowAddModal(false)} style={smallBtnStyle}>Cancel</button>
-              <button type="submit" style={btnStyle}>Add Bit</button>
+              <button type="submit" style={btnStyle}>Add part</button>
             </div>
           </form>
         </Overlay>,
@@ -580,7 +587,7 @@ export default function BitsInventory() {
       {/* Edit Bit Modal */}
       {editingBit && createPortal(
         <Overlay onClose={() => setEditingBit(null)}>
-          <h2 style={{ marginTop: 0, fontSize: '1.2rem' }}>Edit Bit</h2>
+          <h2 style={{ marginTop: 0, fontSize: '1.2rem' }}>Edit part</h2>
           <form onSubmit={handleUpdateBit}>
             <div style={{ marginBottom: 8 }}>
               <label style={labelStyle}>Name</label>
@@ -654,8 +661,8 @@ function StatCard({ label, value, accent }) {
     <div style={{
       padding: '0.75rem 1rem',
       borderRadius: 8,
-      background: 'var(--color-surface-alt, #2a2a2a)',
-      border: '1px solid var(--color-border, #444)',
+      background: 'var(--surface-1)',
+      border: '1px solid var(--border)',
     }}>
       <div style={{ fontSize: '0.75rem', opacity: 0.6, marginBottom: 2 }}>{label}</div>
       <div style={{ fontSize: '1.25rem', fontWeight: 700, color: accent ? 'var(--color-warning, #e8a735)' : 'inherit' }}>{value}</div>
@@ -673,9 +680,9 @@ function Overlay({ onClose, children }) {
       }}
     >
       <div style={{
-        background: 'var(--color-surface, #1e1e1e)', borderRadius: 12,
+        background: 'var(--surface-1)', borderRadius: 12,
         padding: '1.5rem', maxWidth: 480, width: '100%', maxHeight: '90vh', overflow: 'auto',
-        border: '1px solid var(--color-border, #444)',
+        border: '1px solid var(--border)',
       }}>
         {children}
       </div>
@@ -689,8 +696,8 @@ const btnStyle = {
   padding: '0.5rem 1.25rem',
   borderRadius: 6,
   border: 'none',
-  background: 'var(--color-accent, #5ba85b)',
-  color: '#fff',
+  background: 'var(--accent)',
+  color: 'var(--accent-foreground)',
   fontWeight: 600,
   cursor: 'pointer',
   fontSize: '0.9rem',
@@ -720,11 +727,18 @@ const inputStyle = {
   width: '100%',
   padding: '0.45rem 0.6rem',
   borderRadius: 4,
-  border: '1px solid var(--color-border, #444)',
-  background: 'var(--color-surface-alt, #2a2a2a)',
+  border: '1px solid var(--border)',
+  background: 'var(--surface-2)',
   color: 'inherit',
   fontSize: '0.9rem',
   boxSizing: 'border-box',
+};
+
+const filterInputStyle = {
+  ...inputStyle,
+  flex: '1 1 180px',
+  width: 'auto',
+  minWidth: 0,
 };
 
 const labelStyle = {
@@ -737,6 +751,6 @@ const labelStyle = {
 const cardStyle = {
   padding: '0.75rem 1rem',
   borderRadius: 8,
-  background: 'var(--color-surface-alt, #2a2a2a)',
-  border: '1px solid var(--color-border, #444)',
+  background: 'var(--surface-1)',
+  border: '1px solid var(--border)',
 };

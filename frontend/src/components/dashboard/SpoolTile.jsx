@@ -79,8 +79,8 @@ export default function SpoolTile({ color, count, totalWeight, onClick, faded, h
       type="button"
       className={`spool-card${highlight ? ' low-stock' : ''}${faded ? ' faded' : ''}`}
       onClick={onClick}
-      title={`${color} – ${count} active spools${reserveCount ? `, ${reserveCount} in reserve` : ''}`}
-      aria-label={`${color}: ${count} active spools${reserveCount ? `, ${reserveCount} reserve` : ''}`}
+      title={`${color} – ${count} active ${count === 1 ? 'spool' : 'spools'}${reserveCount ? `, ${reserveCount} in reserve` : ''}`}
+      aria-label={`${color}: ${count} active ${count === 1 ? 'spool' : 'spools'}${reserveCount ? `, ${reserveCount} reserve` : ''}`}
       style={{ '--spool-accent': accentColor, '--spool-text': textColor }}
     >
       <div className="spool-visual">

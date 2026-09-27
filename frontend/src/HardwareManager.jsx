@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useContext, useCallback, useMemo } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { AuthContext } from './AuthContext';
 import { useConfirmDialog } from './ConfirmDialog';
 import SpoolSpinner from './components/SpoolSpinner';
 import EmptyState from './components/EmptyState';
 import useMetadata, { HARDWARE_METADATA } from './hooks/useMetadata';
+import CreateSpoolFromTagDialog, { TagSummary } from './components/hardware/CreateSpoolFromTagDialog';
 import './HardwareManager.css';
 
 const HardwareManager = () => {
@@ -24,7 +26,8 @@ const HardwareManager = () => {
   const [spools, setSpools] = useState([]);
   const [linking, setLinking] = useState({});
   const metadata = useMetadata(authFetch, HARDWARE_METADATA);
-  const { materials, colors, manufacturers } = metadata;
+  const { materials, colors, manufacturers, spoolTypes } = metadata;
+  const [creatingFromOrphan, setCreatingFromOrphan] = useState(null);
   const reloadMetadata = metadata.reload;
   const [deviceSecrets, setDeviceSecrets] = useState({});
   const [focusedDeviceId, setFocusedDeviceId] = useState(null);
@@ -32,6 +35,14 @@ const HardwareManager = () => {
   const [wifiSaving, setWifiSaving] = useState({});
   const [lastRefreshedAt, setLastRefreshedAt] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (location.hash !== '#register-device') return;
+    setShowRegisterForm(true);
+    navigate(`${location.pathname}${location.search}`, { replace: true });
+  }, [location.hash, location.pathname, location.search, navigate]);
 
   const copyToClipboard = useCallback(async (value) => {
     if (!value) return false;
@@ -345,6 +356,13 @@ const HardwareManager = () => {
     }
   };
 
+  const handleSpoolCreatedFromTag = async () => {
+    setCreatingFromOrphan(null);
+    await Promise.all([fetchOrphans(), fetchSpools(), fetchDevices(), reloadMetadata({ force: true }).catch(() => null)]);
+    setError(null);
+    setFeedback('Spool created and tag linked.');
+  };
+
   const focusOnDevice = (deviceId) => {
     setFocusedDeviceId(deviceId);
     const section = document.getElementById('orphan-section');
@@ -496,15 +514,21 @@ const HardwareManager = () => {
     {DialogComponent}
     <div className="hardware-manager">
       <div className="hardware-header">
-        <h2>Hardware Devices</h2>
-        <button
-          className="btn btn-primary"
-          onClick={() => setShowRegisterForm(true)}
-        >
-          Register New Device
-        </button>
+        <div>
+          <p className="eyebrow">Connected workshop</p>
+          <h2>Hardware</h2>
+          <p className="hardware-intro">Manage scales and NFC readers that report directly to Spoolio.</p>
+        </div>
+        <div className="hardware-header-actions">
+          <button className="btn btn-outline btn-sm" onClick={() => runFullRefresh()} disabled={refreshing}>
+            {refreshing ? 'Refreshing…' : 'Refresh'}
+          </button>
+          <button className="btn btn-primary" onClick={() => setShowRegisterForm(true)}>
+            Register device
+          </button>
+        </div>
       </div>
-      <div className="hardware-summary">
+      {devices.length > 0 && <div className="hardware-summary">
         <div className="summary-card">
           <span className="summary-label">Online devices</span>
           <strong>{connectedDevices.length}</strong>
@@ -521,15 +545,7 @@ const HardwareManager = () => {
           <span className="summary-label">Last refresh</span>
           <strong>{lastRefreshedAt ? lastRefreshedAt.toLocaleTimeString() : '—'}</strong>
         </div>
-        <button
-          className="btn btn-outline"
-          onClick={() => runFullRefresh()}
-          disabled={refreshing}
-          style={{ minWidth: 140 }}
-        >
-          {refreshing ? 'Refreshing…' : 'Refresh now'}
-        </button>
-      </div>
+      </div>}
 
       {error && (
         <div className="error-message" role="alert" aria-live="assertive">
@@ -546,9 +562,15 @@ const HardwareManager = () => {
       )}
 
       {showRegisterForm && (
-        <div className="register-form-overlay">
-          <div className="register-form">
-            <h3>Register New Hardware Device</h3>
+        <div
+          className="register-form-overlay"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setShowRegisterForm(false);
+          }}
+        >
+          <div className="register-form" role="dialog" aria-modal="true" aria-labelledby="register-device-title">
+            <h3 id="register-device-title">Register a hardware device</h3>
             <form onSubmit={handleRegisterDevice}>
               <div className="form-group">
                 <label htmlFor="device_id">Device ID:</label>
@@ -557,7 +579,7 @@ const HardwareManager = () => {
                   id="device_id"
                   value={newDevice.device_id}
                   onChange={(e) => setNewDevice({...newDevice, device_id: e.target.value})}
-                  placeholder="e.g., ESP8266_SPOOL_TRACKER_001"
+                  placeholder="e.g. WORKSHOP_SCALE_001"
                   required
                 />
                 <small>Unique identifier for your hardware device</small>
@@ -595,7 +617,7 @@ const HardwareManager = () => {
                   id="hardware_type"
                   value={newDevice.hardware_type}
                   onChange={(e) => setNewDevice({ ...newDevice, hardware_type: e.target.value })}
-                  placeholder="e.g., esp8266"
+                  placeholder="e.g. xiao-esp32c3-scale"
                   required
                 />
                 <small>Used to target OTA firmware releases (match the value your device reports).</small>
@@ -618,11 +640,8 @@ const HardwareManager = () => {
         </div>
       )}
 
-      <section className="connected-hardware">
+      {connectedDevices.length > 0 && <section className="connected-hardware">
         <h3>Connected hardware</h3>
-        {connectedDevices.length === 0 ? (
-          <p className="connected-empty">No devices are currently online.</p>
-        ) : (
           <div className="connected-grid">
             {connectedDevices.map(device => {
               const pendingTags = (orphansByDevice[device.id] || []).length;
@@ -689,14 +708,15 @@ const HardwareManager = () => {
               );
             })}
           </div>
-        )}
-      </section>
+      </section>}
 
       <div className="devices-grid">
         {devices.length === 0 ? (
           <EmptyState
             title="No devices yet"
-            message="Register your first device to start tracking spool weights automatically."
+            message="Register a scale or NFC reader, copy its device key, then confirm its first heartbeat here."
+            actionLabel="Register your first device"
+            onAction={() => setShowRegisterForm(true)}
           />
         ) : (
           devices.map(device => {
@@ -843,7 +863,20 @@ const HardwareManager = () => {
         )}
       </div>
 
-      <div className="hardware-info" id="orphan-section">
+      {creatingFromOrphan && (
+        <CreateSpoolFromTagDialog
+          orphan={creatingFromOrphan}
+          authFetch={authFetch}
+          spoolTypes={spoolTypes}
+          materials={materials}
+          colors={colors}
+          manufacturers={manufacturers}
+          onCancel={() => setCreatingFromOrphan(null)}
+          onCreated={handleSpoolCreatedFromTag}
+        />
+      )}
+
+      {devices.length > 0 && <div className="hardware-info" id="orphan-section">
         <h3>Unlinked NFC Tags</h3>
         {orphans.length === 0 ? (
           <p>No orphan tags detected yet. When your hardware scans a new tag, it will appear here to link to a spool.</p>
@@ -865,7 +898,10 @@ const HardwareManager = () => {
                   key={o.id}
                   className={o.hardware_device_id === focusedDeviceId ? 'orphan-row-focused' : ''}
                 >
-                  <td>{o.nfc_tag_id}</td>
+                  <td className="orphan-tag-cell">
+                    <span className="orphan-tag-id">{o.nfc_tag_id}</span>
+                    <TagSummary orphan={o} />
+                  </td>
                   <td>{deviceNameById[o.hardware_device_id] || (o.hardware_device_id ? `Device #${o.hardware_device_id}` : 'Unknown')}</td>
                   <td>{typeof o.last_weight === 'number' ? Math.round(o.last_weight) : o.last_weight ?? '-'}</td>
                   <td>{o.last_seen ? new Date(o.last_seen).toLocaleString() : '-'}</td>
@@ -895,40 +931,44 @@ const HardwareManager = () => {
                       })()}
                     </select>
                   </td>
-                  <td style={{ whiteSpace: 'nowrap' }}>
-                    <button className="btn btn-primary btn-sm" onClick={() => linkOrphan(o.nfc_tag_id)} disabled={!linking[o.nfc_tag_id]}>Link</button>
-                    <button className="btn btn-secondary btn-sm" style={{ marginLeft: 8 }} onClick={() => deleteOrphan(o.nfc_tag_id)}>Delete</button>
+                  <td>
+                    <div className="orphan-actions">
+                      <button className="btn btn-primary btn-sm" onClick={() => linkOrphan(o.nfc_tag_id)} disabled={!linking[o.nfc_tag_id]}>Link</button>
+                      {o.tag_metadata && (
+                        <button className="btn btn-primary btn-sm" onClick={() => setCreatingFromOrphan(o)}>Create spool</button>
+                      )}
+                      <button className="btn btn-secondary btn-sm" onClick={() => deleteOrphan(o.nfc_tag_id)}>Delete</button>
+                    </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
-      </div>
+      </div>}
 
       <div className="hardware-info">
-        <h3>Hardware Integration Guide</h3>
+        <h3>Hardware Protocol v1</h3>
         <div className="info-grid">
           <div className="info-card">
-            <h4>Setup Instructions</h4>
+            <h4>Connect a device</h4>
             <ol>
-              <li>Register your device above to get an API key</li>
-              <li>Update your ESP8266 code with the API key</li>
-              <li>Configure WiFi settings in the code</li>
-              <li>Upload the code to your ESP8266</li>
-              <li>Attach NFC tags to your spools</li>
+              <li>Register the device and copy its key once</li>
+              <li>Install a maintained Spoolio sketch or implement Protocol v1</li>
+              <li>Provision Wi-Fi and the device key without committing credentials</li>
+              <li>Wait for the device to appear online</li>
+              <li>Scan a tag and link it to a spool</li>
             </ol>
           </div>
 
           <div className="info-card">
-            <h4>Required Components</h4>
+            <h4>Reference scale build</h4>
             <ul>
-              <li>ESP8266 microcontroller</li>
-              <li>HX711 load cell amplifier</li>
-              <li>PN532 NFC reader</li>
-              <li>NeoPixel LED strip</li>
-              <li>Load cell sensor</li>
-              <li>NFC tags for spools</li>
+              <li>Wi-Fi-capable microcontroller</li>
+              <li>HX711 amplifier and load cell</li>
+              <li>PN532-compatible NFC reader</li>
+              <li>NFC tags attached to spools</li>
+              <li>Status LED (optional)</li>
             </ul>
           </div>
 

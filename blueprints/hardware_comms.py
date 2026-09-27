@@ -13,6 +13,7 @@ from time_utils import utc_now_iso, utc_now_naive
 from blueprints._helpers import (
     hardware_auth_required,
     event_spools,
+    find_owned_spool_by_tag,
     json_object,
     serialize_hardware_device,
     serialize_hardware_event,
@@ -402,12 +403,18 @@ def hardware_event():
     if weight is not None and not math.isfinite(weight):
         return jsonify({'error': 'weight must be a finite number'}), 400
 
+    fallback_value = data.get('fallback_tag_id')
+    if fallback_value is not None and not isinstance(fallback_value, str):
+        return jsonify({'error': 'fallback_tag_id must be text'}), 400
+    fallback_tag_id = fallback_value.strip() or None if isinstance(fallback_value, str) else None
+
     spool = None
     if nfc_tag_id:
-        spool = models.FilamentSpool.query.filter_by(
-            nfc_tag_id=nfc_tag_id,
-            user_id=getattr(request.hardware_device, 'user_id', None),
-        ).first()
+        spool = find_owned_spool_by_tag(
+            getattr(request.hardware_device, 'user_id', None),
+            nfc_tag_id,
+            fallback_tag_id,
+        )
 
     evt = models.HardwareEvent(
         device_id=request.hardware_device.id,

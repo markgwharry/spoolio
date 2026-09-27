@@ -101,13 +101,16 @@ class SpoolioHardwareClient:
     def heartbeat(self):
         return self._request("GET", "/hardware/heartbeat")
 
-    def lookup(self, identifier):
+    def lookup(self, identifier, *, fallback=None):
         value = str(identifier).strip()
         if not value:
             raise ValueError("identifier is required")
-        return self._request("GET", f"/hardware/spool/{quote(value, safe='')}")
+        path = f"/hardware/spool/{quote(value, safe='')}"
+        if fallback:
+            path += f"?fallback={quote(str(fallback).strip(), safe='')}"
+        return self._request("GET", path)
 
-    def update_weight(self, identifier, gross_weight):
+    def update_weight(self, identifier, gross_weight, *, fallback=None, tag=None):
         value = str(identifier).strip()
         if not value:
             raise ValueError("identifier is required")
@@ -118,11 +121,14 @@ class SpoolioHardwareClient:
             raise ValueError(
                 f"gross_weight must be between 0 and {MAX_GROSS_WEIGHT_GRAMS:g} g"
             )
-        return self._request(
-            "POST",
-            "/hardware/weight-update",
-            {"nfc_tag_id": value, "weight": gross_weight},
-        )
+        payload = {"nfc_tag_id": value, "weight": gross_weight}
+        if fallback:
+            payload["fallback_tag_id"] = str(fallback).strip()
+        if tag is not None:
+            if not isinstance(tag, dict):
+                raise ValueError("tag must be a JSON object")
+            payload["tag"] = tag
+        return self._request("POST", "/hardware/weight-update", payload)
 
     def event(self, event_type, *, identifier=None, weight=None, message=None):
         event_type = str(event_type).strip()
@@ -165,10 +171,16 @@ def _parser():
 
     lookup = commands.add_parser("lookup")
     lookup.add_argument("identifier")
+    lookup.add_argument("--fallback-id", help="secondary identifier, e.g. a chip UID")
 
     weight = commands.add_parser("weight")
     weight.add_argument("identifier")
     weight.add_argument("grams", type=float)
+    weight.add_argument("--fallback-id", help="secondary identifier, e.g. a chip UID")
+    weight.add_argument(
+        "--tag-json",
+        help='decoded tag metadata, e.g. \'{"format":"bambu","material":"PLA"}\'',
+    )
 
     event = commands.add_parser("event")
     event.add_argument("event_type")
@@ -193,9 +205,18 @@ def main(argv=None):
         if args.command == "heartbeat":
             result = client.heartbeat()
         elif args.command == "lookup":
-            result = client.lookup(args.identifier)
+            result = client.lookup(args.identifier, fallback=args.fallback_id)
         elif args.command == "weight":
-            result = client.update_weight(args.identifier, args.grams)
+            try:
+                tag = json.loads(args.tag_json) if args.tag_json else None
+            except json.JSONDecodeError as exc:
+                raise ValueError(f"--tag-json is not valid JSON: {exc}") from exc
+            result = client.update_weight(
+                args.identifier,
+                args.grams,
+                fallback=args.fallback_id,
+                tag=tag,
+            )
         else:
             result = client.event(
                 args.event_type,

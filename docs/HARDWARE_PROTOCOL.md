@@ -83,6 +83,9 @@ GET /api/hardware/spool/{url-encoded-identifier}
 Returns the owner-scoped spool record, or `404` when the identifier is not
 linked. Limit: 60 requests per minute.
 
+Add `?fallback={url-encoded-identifier}` to try a second identifier when the
+first is not linked (see [Fallback identifiers](#fallback-identifiers)).
+
 ### Weight update
 
 ```http
@@ -98,6 +101,41 @@ If the identifier is unknown, Spoolio returns `404` with
 `orphan_recorded: true` when it saved the reading for later linking. Treat that
 as an accepted measurement, not a rapid-retry condition. Limit: 30 requests per
 minute.
+
+Two optional fields may be added:
+
+- `fallback_tag_id` — a second identifier, tried when `nfc_tag_id` is not
+  linked. Unknown readings are still recorded under `nfc_tag_id`.
+- `tag` — what the device decoded from a vendor tag. Spoolio stores it with an
+  unknown reading so the owner can create the spool from it in one step. A
+  non-object `tag` is a `400`; invalid fields inside it are dropped.
+
+```json
+{
+  "nfc_tag_id": "A1B2C3D4E5F60718293A4B5C6D7E8F90",
+  "fallback_tag_id": "5AC3F21B",
+  "weight": 1250.0,
+  "tag": {
+    "format": "bambu",
+    "chip_uid": "5AC3F21B",
+    "material": "PLA",
+    "variant": "PLA Basic",
+    "material_id": "GFA00",
+    "variant_id": "A00-W1",
+    "color_hex": "#FFFFFF",
+    "spool_weight": 1000,
+    "diameter": 1.75,
+    "nozzle_temp_min": 190,
+    "nozzle_temp_max": 230,
+    "drying_temp": 55,
+    "drying_time_h": 8,
+    "production_date": "2024_01_15_10_30"
+  }
+}
+```
+
+`format` (lowercase letters, digits, `_` or `-`) is required for the object to
+be kept; every other field is optional.
 
 ### Progress events (optional)
 
@@ -116,7 +154,18 @@ Content-Type: application/json
 Recognized UI states include `scan_start`, `weighing`, `stable_weight`, `error`,
 `ready`, `ready_to_weigh`, `waiting_clear`, and `waiting_removal`. Custom event
 names are stored but may not receive special UI treatment. Event posting does
-not update inventory; the weight-update endpoint is still required.
+not update inventory; the weight-update endpoint is still required. Events
+accept the same optional `fallback_tag_id`.
+
+## Fallback identifiers
+
+Some tags carry a better identifier than their chip UID. Bambu Lab spools have
+two MIFARE Classic tags with different chip UIDs but the same *tray UUID*
+(block 9), so the maintained scale sketch sends the tray UUID as `nfc_tag_id`
+and the chip UID as `fallback_tag_id`. Either tag on the spool then finds the
+same record, and a spool that was linked by chip UID keeps working. Lookups are
+always scoped to the device owner; a fallback never reaches another account's
+spool.
 
 ## Failure and retry rules
 

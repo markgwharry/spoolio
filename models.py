@@ -354,6 +354,9 @@ class OrphanTag(db.Model):
     last_weight = db.Column(db.Float, nullable=True)
     hardware_device_id = db.Column(db.Integer, db.ForeignKey('hardware_device.id'), nullable=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    # Decoded vendor tag contents (e.g. Bambu Lab), JSON-encoded; see hardware_tags.py
+    tag_format = db.Column(db.String(32), nullable=True)
+    tag_metadata = db.Column(db.Text, nullable=True)
 
 
 class HardwareEvent(db.Model):

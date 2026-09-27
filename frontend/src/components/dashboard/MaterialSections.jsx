@@ -2,7 +2,6 @@ import React from 'react';
 import EmptyState from '../EmptyState';
 import RefillListItem from './RefillListItem';
 import SpoolListItem from './SpoolListItem';
-import SpoolRack from './SpoolRack';
 import SpoolTile from './SpoolTile';
 
 const slug = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '-');
@@ -21,7 +20,6 @@ export default function MaterialSections({
   highlightedSpoolId,
   onToggleGroup,
   onToggleMaterial,
-  onOpenAddSpool,
   onOpenSpoolDetail,
   onSpoolUpdated,
   onSpoolDeleted,
@@ -34,19 +32,10 @@ export default function MaterialSections({
   return (
     <div className="material-sections">
       {groupsAreEmpty && (
-        spools.length === 0 ? (
-          <EmptyState
-            title="Your rack is empty"
-            message="Add your first spool to start tracking weight, colour and cost."
-            actionLabel="Add your first spool"
-            onAction={onOpenAddSpool}
-          />
-        ) : (
-          <EmptyState
-            title="No spools match your filters"
-            message="Try clearing a filter or the low-stock toggle to see more."
-          />
-        )
+        <EmptyState
+          title="No spools match your filters"
+          message="Try clearing a filter or the low-stock toggle to see more."
+        />
       )}
       {Object.entries(groupedSpools).map(([material, colorGroups]) => {
         if (Object.keys(colorGroups).length === 0) return null;
@@ -79,21 +68,12 @@ export default function MaterialSections({
               </span>
               <h2>{material}</h2>
               <span className="material-meta">
-                {materialSpools.length} spools · {(materialWeight / 1000).toFixed(1)}kg
+                {materialSpools.length} {materialSpools.length === 1 ? 'spool' : 'spools'} · {(materialWeight / 1000).toFixed(1)}kg
               </span>
               <div className="material-line" />
             </button>
             {!collapsed[material] && (
               <>
-                <div className="material-rack">
-                  <SpoolRack
-                    items={materialSpools.map((spool) => ({
-                      ...spool,
-                      colorName: colors.find((color) => color.id === spool.color_id)?.name,
-                      materialName: material,
-                    }))}
-                  />
-                </div>
                 <div className="spool-grid">
                   {Object.entries(colorGroups).map(([color, spoolsInGroup]) => {
                     const groupKey = `${material}-${color}`;
@@ -146,7 +126,7 @@ export default function MaterialSections({
                                 />
                               ))}
                               {activeSpools.length === 0 && spoolsInGroup.length === 0 && (
-                                <div className="empty-spools-notice">No active spools for this color.</div>
+                                <div className="empty-spools-notice">No active spools for this colour.</div>
                               )}
                             </div>
                             {refillsInGroup.length > 0 && (

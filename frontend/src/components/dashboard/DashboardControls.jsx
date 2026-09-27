@@ -14,6 +14,7 @@ export default function DashboardControls({
   adminMetadata,
   onHideEmptyChange,
   onFilterChange,
+  onResetFilters,
   onOpenDataManager,
   onOpenReport,
   onCloseDataManager,
@@ -25,17 +26,26 @@ export default function DashboardControls({
 }) {
   return (
     <>
-      <div className="dashboard-controls">
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginBottom: 8 }}>
-          {user.is_admin && <button className="button" onClick={onOpenDataManager}>Data Manager</button>}
-          <button className="button" onClick={onOpenReport}>Supplies Report</button>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 12 }}>
-            <input type="checkbox" checked={hideEmpty} onChange={(event) => onHideEmptyChange(event.target.checked)} />
-            Hide Empty Spools
-          </label>
-          <span style={{ marginLeft: 12, color: '#666' }}>
-            Empty spools available: <strong>{emptySpoolCount}</strong>
-          </span>
+      <section className="dashboard-controls" aria-label="Filament library controls">
+        <div className="dashboard-controls-heading">
+          <div>
+            <p className="eyebrow">Find filament</p>
+            <h2>Filter your library</h2>
+          </div>
+          <details className="inventory-tools-menu">
+            <summary>Inventory tools</summary>
+            <div className="inventory-tools-content">
+              {user.is_admin && <button className="button ghost" onClick={onOpenDataManager}>Data Manager</button>}
+              <button className="button ghost" onClick={onOpenReport}>Supplies Report</button>
+              <label className="filter-check">
+                <input type="checkbox" checked={hideEmpty} onChange={(event) => onHideEmptyChange(event.target.checked)} />
+                Hide empty groups
+              </label>
+              <span className="empty-spool-count">
+                Empty spools: <strong>{emptySpoolCount}</strong>
+              </span>
+            </div>
+          </details>
         </div>
         <DashboardFilters
           materials={materials}
@@ -43,8 +53,9 @@ export default function DashboardControls({
           manufacturers={manufacturers}
           filters={filters}
           onChange={onFilterChange}
+          onReset={onResetFilters}
         />
-      </div>
+      </section>
       {user.is_admin && showDataManager && (
         <AdminDataManager
           metadata={adminMetadata}

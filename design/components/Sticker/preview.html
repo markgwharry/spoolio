@@ -1,0 +1,19 @@
+<!-- @dsCard group="Status" height=64 -->
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Sticker — preview</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
+
+</head>
+<body>
+<div id="root" class="fm-row"></div>
+<script>
+  var F = window.Filamentarium, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(
+    h(React.Fragment, null,
+      h('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ink-muted)' } }, h(F.Sticker, { kind: 'low' }), 'Low stock'),
+      h('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ink-muted)' } }, h(F.Sticker, { kind: 'dry' }), 'Due for drying'))
+  );
+</script>
+</body>
+</html>

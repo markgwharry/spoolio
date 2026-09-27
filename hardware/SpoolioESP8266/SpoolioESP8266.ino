@@ -15,6 +15,8 @@
 // - Live OLED status: Ready, Weighing w/ weight, Uploading, Done, and error states
 // - Attempts to parse basic fields from NFC payload to show ID / Material / Color / Tare
 // - Simple persistence of "seen tags" using EEPROM (hash-based set)
+// - Bambu Lab spool tags: decodes material/colour/weight and identifies the spool
+//   by its tray UUID (shared by both tags), with the chip UID sent as a fallback
 //
 // Notes:
 // - WiFi: Configured via captive portal (connect to "Spoolio-Setup") or USB serial
@@ -44,6 +46,7 @@
 #include <ArduinoJson.h>
 #include <EEPROM.h>
 #include "HX711.h"
+#include "BambuTag.h"
 
 struct TagInfo {
   String id;
@@ -84,6 +87,12 @@ void configureSpoolioTls(WiFiClientSecure& client) {
 // Option to bypass PN532 entirely while testing OLED/LED/scale
 #ifndef DISABLE_NFC
 #define DISABLE_NFC 0
+#endif
+
+// Decode Bambu Lab MIFARE Classic tags (see BambuTag.h). Set to 0 to identify
+// every tag by its chip UID only.
+#ifndef ENABLE_BAMBU_TAGS
+#define ENABLE_BAMBU_TAGS 1
 #endif
 
 // WiFi credentials managed by WiFiManager (stored in ESP flash automatically)
@@ -174,6 +183,11 @@ String confirmedNFC = "";
 String confirmedUidHex = "";
 String confirmedAscii = "";      // parsed ASCII payload, if available
 String gPendingAscii = "";       // most recent ASCII candidate while confirming
+
+// Bambu Lab tag decoded for the current scan
+BambuTagInfo gBambu;
+bool gBambuValid = false;
+String gFallbackTagId = "";      // chip UID sent alongside a Bambu tray UUID
 
 // NFC UX helpers
 bool gNfcPresent = false;            // true while a tag is detected near the reader
@@ -576,6 +590,18 @@ void oledNfcReadingScreen(int frame) {
   display.display();
 }
 
+void printBambuTag(const BambuTagInfo& tag) {
+  Serial.println("[BAMBU] Decoded tag:");
+  Serial.printf("  Tray UUID:  %s\n", tag.trayUuid);
+  Serial.printf("  Chip UID:   %s\n", tag.chipUid);
+  Serial.printf("  Filament:   %s (%s)\n", tag.variant, tag.material);
+  Serial.printf("  IDs:        %s / %s\n", tag.variantId, tag.materialId);
+  Serial.printf("  Colour:     %s\n", tag.colorHex);
+  Serial.printf("  Weight:     %u g, %.2f mm\n", tag.spoolWeight, tag.diameter);
+  Serial.printf("  Nozzle:     %u-%u C\n", tag.nozzleTempMin, tag.nozzleTempMax);
+  Serial.printf("  Produced:   %s\n", tag.productionDate);
+}
+
 // ---- API helpers ----
 void ledAnimate();
 void handleSerialCommands();
@@ -588,9 +614,10 @@ static bool postEvent(const char* eventType, const String& tagId, const String& 
   if (!http.begin(client, buildApiUrl(event_endpoint))) return false;
   http.addHeader("Content-Type", "application/json");
   http.addHeader("Authorization", String("Bearer ") + api_key);
-  DynamicJsonDocument doc(256);
+  DynamicJsonDocument doc(384);
   doc["event_type"] = eventType;
   if (tagId.length()) doc["nfc_tag_id"] = tagId;
+  if (tagId.length() && gFallbackTagId.length()) doc["fallback_tag_id"] = gFallbackTagId;
   if (message.length()) doc["message"] = message;
   String payload; serializeJson(doc, payload);
   http.POST(payload);
@@ -615,6 +642,7 @@ static bool fetchSpoolInfo(const String& tagId, TagInfo& ti) {
   HTTPClient http;
   http.setTimeout(3000);
   String url = buildApiUrl(spool_lookup_endpoint) + tagId;
+  if (gFallbackTagId.length()) url += "?fallback=" + gFallbackTagId;
   Serial.print("[API] URL: "); Serial.println(url);
 
   if (!http.begin(client, url)) {
@@ -722,9 +750,28 @@ static uint8_t uploadWeightApi(const String& tagId, float weight) {
   http.addHeader("Content-Type", "application/json");
   http.addHeader("Authorization", String("Bearer ") + api_key);
 
-  DynamicJsonDocument doc(256);
+  DynamicJsonDocument doc(768);
   doc["nfc_tag_id"] = tagId;
   doc["weight"] = weight;
+  if (gFallbackTagId.length()) doc["fallback_tag_id"] = gFallbackTagId;
+  if (gBambuValid) {
+    // Decoded tag contents let Spoolio pre-fill the spool if it is new.
+    JsonObject tag = doc.createNestedObject("tag");
+    tag["format"] = "bambu";
+    tag["chip_uid"] = gBambu.chipUid;
+    tag["material"] = gBambu.material;
+    if (gBambu.variant[0]) tag["variant"] = gBambu.variant;
+    if (gBambu.materialId[0]) tag["material_id"] = gBambu.materialId;
+    if (gBambu.variantId[0]) tag["variant_id"] = gBambu.variantId;
+    tag["color_hex"] = gBambu.colorHex;
+    if (gBambu.spoolWeight) tag["spool_weight"] = gBambu.spoolWeight;
+    if (gBambu.diameter > 0) tag["diameter"] = gBambu.diameter;
+    if (gBambu.nozzleTempMin) tag["nozzle_temp_min"] = gBambu.nozzleTempMin;
+    if (gBambu.nozzleTempMax) tag["nozzle_temp_max"] = gBambu.nozzleTempMax;
+    if (gBambu.dryingTemp) tag["drying_temp"] = gBambu.dryingTemp;
+    if (gBambu.dryingHours) tag["drying_time_h"] = gBambu.dryingHours;
+    if (gBambu.productionDate[0]) tag["production_date"] = gBambu.productionDate;
+  }
   String payload; serializeJson(doc, payload);
 
   int code = http.POST(payload);
@@ -778,6 +825,7 @@ void handleSerialCommands() {
         Serial.println("Diagnostics:");
         Serial.println("  status          Show system status");
         Serial.println("  i2cscan         Scan I2C bus");
+        Serial.println("  bambu           Show the last decoded Bambu tag");
         Serial.println("  reboot          Restart device");
         Serial.println("");
         return;
@@ -917,7 +965,14 @@ void handleSerialCommands() {
 #else
         Serial.println("  NFC:        enabled");
 #endif
+        Serial.print("  Bambu tags: "); Serial.println(ENABLE_BAMBU_TAGS ? "enabled" : "disabled");
         Serial.print("  Cal factor: "); Serial.println(calibration_factor, 3);
+        return;
+      }
+
+      if (cmd == "bambu") {
+        if (gBambuValid) printBambuTag(gBambu);
+        else Serial.println("[BAMBU] No Bambu tag decoded on the last scan");
         return;
       }
 
@@ -1435,7 +1490,9 @@ void readNtagOrUid(const uint8_t* uid, uint8_t uidLength) {
   String asciiText = "";
   bool anyPage = false;
 
-  for (uint8_t page=4; page<=7; page++) {
+  // NTAG/Ultralight tags have 7-byte UIDs; 4-byte UIDs are MIFARE Classic
+  // (including Bambu Lab tags), which reject Ultralight page reads.
+  for (uint8_t page=4; uidLength == 7 && page<=7; page++) {
     if (nfc.mifareultralight_ReadPage(page, buf)) {
       String pageText = hexToAscii(buf);
       if (pageText.length() > 0) {
@@ -1572,6 +1629,78 @@ void readNFC() {
     }
   }
 }
+
+// ====== BAMBU LAB TAGS ======
+static bool hexToUidBytes(const String& hex, uint8_t* out, uint8_t len) {
+  if (hex.length() != (unsigned)len * 2) return false;
+  for (uint8_t i = 0; i < len; i++) {
+    char pair[3] = { hex[i * 2], hex[i * 2 + 1], 0 };
+    char* end = nullptr;
+    out[i] = (uint8_t)strtoul(pair, &end, 16);
+    if (end != pair + 2) return false;
+  }
+  return true;
+}
+
+#if ENABLE_BAMBU_TAGS && !DISABLE_NFC
+// Re-select one specific tag; a failed MIFARE auth drops the card back to idle.
+static bool reselectTag(const uint8_t* uid, uint8_t uidLen) {
+  uint8_t seen[7] = {0};
+  uint8_t seenLen = 0;
+  if (!nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, seen, &seenLen, 150)) return false;
+  return seenLen == uidLen && memcmp(seen, uid, uidLen) == 0;
+}
+
+static bool readBambuSector(uint8_t sector, uint8_t* uid, uint8_t* key, uint8_t keyType,
+                            uint8_t out[3][BAMBU_BLOCK_LEN]) {
+  for (uint8_t attempt = 0; attempt < 3; attempt++) {
+    if (attempt > 0 && !reselectTag(uid, BAMBU_UID_LEN)) continue;
+    // keyType: 0 = key A, 1 = key B (PN532 library convention)
+    if (!nfc.mifareclassic_AuthenticateBlock(uid, BAMBU_UID_LEN, sector * 4 + 3, keyType, key)) continue;
+    bool ok = true;
+    for (uint8_t b = 0; b < 3 && ok; b++) {
+      ok = nfc.mifareclassic_ReadDataBlock(sector * 4 + b, out[b]);
+    }
+    if (ok) return true;
+    yield();
+  }
+  return false;
+}
+
+// Try to read and decode a Bambu Lab tag. Returns false for any other tag.
+static bool tryReadBambuTag(const uint8_t* uidIn, uint8_t uidLen, BambuTagInfo& info) {
+  if (uidLen != BAMBU_UID_LEN) return false;
+  uint8_t uid[BAMBU_UID_LEN];
+  memcpy(uid, uidIn, sizeof(uid));
+  uint8_t keys[BAMBU_SECTOR_COUNT][BAMBU_KEY_LEN];
+  uint8_t blocks[BAMBU_READ_BLOCKS][BAMBU_BLOCK_LEN];
+  uint8_t sectorBlocks[3][BAMBU_BLOCK_LEN];
+  const BambuKeyType keyTypes[2] = { BAMBU_KEY_A, BAMBU_KEY_B };
+
+  for (uint8_t t = 0; t < 2; t++) {
+    if (!bambuDeriveKeys(uid, sizeof(uid), keyTypes[t], keys)) return false;
+    if (!reselectTag(uid, sizeof(uid))) return false;  // tag moved away
+    // Sector 0 decides whether this key type (and this tag) is Bambu at all.
+    if (!readBambuSector(0, uid, keys[0], keyTypes[t], sectorBlocks)) continue;
+
+    memset(blocks, 0, sizeof(blocks));
+    memcpy(blocks[0], sectorBlocks, sizeof(sectorBlocks));
+    for (uint8_t sector = 1; sector < BAMBU_READ_SECTORS; sector++) {
+      if (!readBambuSector(sector, uid, keys[sector], keyTypes[t], sectorBlocks)) {
+        Serial.printf("[BAMBU] Sector %u read failed; using chip UID\n", sector);
+        return false;
+      }
+      memcpy(blocks[sector * 4], sectorBlocks, sizeof(sectorBlocks));
+    }
+    if (!bambuParseBlocks(blocks, uid, sizeof(uid), info)) {
+      Serial.println("[BAMBU] Tag authenticated but carried no filament data");
+      return false;
+    }
+    return true;
+  }
+  return false;
+}
+#endif
 
 // naive field parser trying to find key/value hints in the ascii payload
 TagInfo parseTagInfo(const String& txt) {
@@ -1816,6 +1945,20 @@ void loop() {
   // Try to fetch spool info from API first, fall back to parsing tag ASCII
   TagInfo ti;
   String tagId = confirmedUidHex.length() ? confirmedUidHex : confirmedNFC;
+  gBambuValid = false;
+  gFallbackTagId = "";
+#if ENABLE_BAMBU_TAGS && !DISABLE_NFC
+  uint8_t chipUid[BAMBU_UID_LEN];
+  if (hexToUidBytes(confirmedUidHex, chipUid, sizeof(chipUid))) {
+    oledMsg("Reading tag...", tagId);
+    if (tryReadBambuTag(chipUid, sizeof(chipUid), gBambu)) {
+      gBambuValid = true;
+      gFallbackTagId = tagId;           // keeps spools linked by chip UID working
+      tagId = String(gBambu.trayUuid);  // same on both tags of the spool
+      printBambuTag(gBambu);
+    }
+  }
+#endif
   Serial.print("[NFC] Tag: "); Serial.println(tagId);
   bool fetchedFromApi = false;
 
@@ -1826,8 +1969,15 @@ void loop() {
     Serial.println("[WARN] WiFi offline - using local data");
   }
 
-  // If API fetch failed, try parsing from tag ASCII data
-  if (!fetchedFromApi && confirmedAscii.length()) {
+  // If API fetch failed, show what the tag itself says
+  if (!fetchedFromApi && gBambuValid) {
+    ti.manufacturer = "Bambu";
+    ti.material = gBambu.variant[0] ? gBambu.variant : gBambu.material;
+    ti.color = gBambu.colorHex;
+    ti.weightStart = gBambu.spoolWeight;
+    ti.displayName = String("Bambu ") + ti.material;
+    Serial.println("[NFC] Using decoded Bambu tag data");
+  } else if (!fetchedFromApi && confirmedAscii.length()) {
     ti = parseTagInfo(confirmedAscii);
     Serial.println("[NFC] Using tag ASCII data");
   }
@@ -1885,7 +2035,11 @@ void loop() {
     }
   } else if (up == 1) {
     // 404 - tag not registered on server
-    oledMsg("New spool", "Weight saved", "Register at spoolio.co.uk");
+    if (gBambuValid) {
+      oledMsg("New Bambu spool", ti.material, "Add it in Spoolio");
+    } else {
+      oledMsg("New spool", "Weight saved", "Register at spoolio.co.uk");
+    }
     ledBeginMode(LED_ORPHAN);
     Serial.println("[WARN] Tag not registered - recorded as orphan");
     delay(2000);
